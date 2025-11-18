@@ -62,13 +62,15 @@ describe('Zenoh Node Unit Tests', function() {
                 { id: 'n1', type: 'zenoh-subscribe', keyExpr: 'test/key' }
             ];
             helper.load(subscribeNode, flow, function() {
-                const n1 = helper.getNode('n1');
-                const logEvents = helper.log().args.filter(function(evt) {
-                    return evt[0].type === 'zenoh-subscribe';
+                // Give the node time to log the error
+                setImmediate(function() {
+                    const logEvents = helper.log().args.filter(function(evt) {
+                        return evt[0].type === 'zenoh-subscribe';
+                    });
+                    logEvents.should.have.length(1);
+                    logEvents[0][0].should.have.property('level', helper.log().ERROR);
+                    done();
                 });
-                logEvents.should.have.length(1);
-                logEvents[0][0].should.have.property('level', helper.log().ERROR);
-                done();
             });
         });
     });
@@ -92,13 +94,15 @@ describe('Zenoh Node Unit Tests', function() {
                 { id: 'n1', type: 'zenoh-put', keyExpr: 'test/key' }
             ];
             helper.load(putNode, flow, function() {
-                const n1 = helper.getNode('n1');
-                const logEvents = helper.log().args.filter(function(evt) {
-                    return evt[0].type === 'zenoh-put';
+                // Give the node time to log the error
+                setImmediate(function() {
+                    const logEvents = helper.log().args.filter(function(evt) {
+                        return evt[0].type === 'zenoh-put';
+                    });
+                    logEvents.should.have.length(1);
+                    logEvents[0][0].should.have.property('level', helper.log().ERROR);
+                    done();
                 });
-                logEvents.should.have.length(1);
-                logEvents[0][0].should.have.property('level', helper.log().ERROR);
-                done();
             });
         });
     });
@@ -142,13 +146,15 @@ describe('Zenoh Node Unit Tests', function() {
                 { id: 'n1', type: 'zenoh-query', selector: 'test/key' }
             ];
             helper.load(queryNode, flow, function() {
-                const n1 = helper.getNode('n1');
-                const logEvents = helper.log().args.filter(function(evt) {
-                    return evt[0].type === 'zenoh-query';
+                // Give the node time to log the error
+                setImmediate(function() {
+                    const logEvents = helper.log().args.filter(function(evt) {
+                        return evt[0].type === 'zenoh-query';
+                    });
+                    logEvents.should.have.length(1);
+                    logEvents[0][0].should.have.property('level', helper.log().ERROR);
+                    done();
                 });
-                logEvents.should.have.length(1);
-                logEvents[0][0].should.have.property('level', helper.log().ERROR);
-                done();
             });
         });
     });
@@ -173,13 +179,15 @@ describe('Zenoh Node Unit Tests', function() {
                 { id: 'n1', type: 'zenoh-queryable', keyExpr: 'test/key' }
             ];
             helper.load(queryableNode, flow, function() {
-                const n1 = helper.getNode('n1');
-                const logEvents = helper.log().args.filter(function(evt) {
-                    return evt[0].type === 'zenoh-queryable';
+                // Give the node time to log the error
+                setImmediate(function() {
+                    const logEvents = helper.log().args.filter(function(evt) {
+                        return evt[0].type === 'zenoh-queryable';
+                    });
+                    logEvents.should.have.length(1);
+                    logEvents[0][0].should.have.property('level', helper.log().ERROR);
+                    done();
                 });
-                logEvents.should.have.length(1);
-                logEvents[0][0].should.have.property('level', helper.log().ERROR);
-                done();
             });
         });
     });
