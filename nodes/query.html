@@ -1,0 +1,73 @@
+<script type="text/javascript">
+    RED.nodes.registerType('zenoh-query', {
+        category: 'zenoh',
+        color: '#a6bbcf',
+        defaults: {
+            name: { value: '' },
+            session: { value: '', type: 'zenoh-session', required: true },
+            selector: { value: '' },
+            timeout: { value: 10000, validate: RED.validators.number() }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: 'bridge.png',
+        label: function() {
+            return this.name || this.selector || 'zenoh-query';
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="zenoh-query">
+    <div class="form-row">
+        <label for="node-input-session"><i class="fa fa-server"></i> Session</label>
+        <input type="text" id="node-input-session">
+    </div>
+    <div class="form-row">
+        <label for="node-input-selector"><i class="fa fa-tag"></i> Selector</label>
+        <input type="text" id="node-input-selector" placeholder="demo/example/**">
+    </div>
+    <div class="form-row">
+        <label for="node-input-timeout"><i class="fa fa-clock-o"></i> Timeout (ms)</label>
+        <input type="number" id="node-input-timeout" placeholder="10000">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="zenoh-query">
+    <p>Queries Zenoh queryables and collects replies.</p>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt class="optional">selector <span class="property-type">string</span></dt>
+        <dd>The selector (key expression + parameters) to query. Overrides configured selector.</dd>
+
+        <dt class="optional">topic <span class="property-type">string</span></dt>
+        <dd>Alternative to selector.</dd>
+
+        <dt class="optional">payload <span class="property-type">any</span></dt>
+        <dd>Optional payload to send with the query.</dd>
+
+        <dt class="optional">encoding <span class="property-type">string</span></dt>
+        <dd>The encoding type for the query payload.</dd>
+
+        <dt class="optional">timeout <span class="property-type">number</span></dt>
+        <dd>Timeout in milliseconds for the query.</dd>
+
+        <dt class="optional">attachment <span class="property-type">any</span></dt>
+        <dd>Additional data to send with the query.</dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">array</span></dt>
+        <dd>Array of reply objects. Each reply contains payload, topic, and zenoh metadata.</dd>
+    </dl>
+
+    <h3>Details</h3>
+    <p>Issues a query to Zenoh queryables matching the selector and collects all replies.</p>
+    <p>The selector can include parameters: <code>demo/example/**?arg1=value1;arg2=value2</code></p>
+    <p>Replies are collected until the timeout expires or all queryables have responded.</p>
+</script>

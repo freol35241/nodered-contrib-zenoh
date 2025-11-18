@@ -1,0 +1,56 @@
+<script type="text/javascript">
+    RED.nodes.registerType('zenoh-subscribe', {
+        category: 'zenoh',
+        color: '#a6bbcf',
+        defaults: {
+            name: { value: '' },
+            session: { value: '', type: 'zenoh-session', required: true },
+            keyExpr: { value: '', required: true }
+        },
+        inputs: 0,
+        outputs: 1,
+        icon: 'bridge.png',
+        label: function() {
+            return this.name || this.keyExpr || 'zenoh-subscribe';
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="zenoh-subscribe">
+    <div class="form-row">
+        <label for="node-input-session"><i class="fa fa-server"></i> Session</label>
+        <input type="text" id="node-input-session">
+    </div>
+    <div class="form-row">
+        <label for="node-input-keyExpr"><i class="fa fa-tag"></i> Key Expression</label>
+        <input type="text" id="node-input-keyExpr" placeholder="demo/example/**">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="zenoh-subscribe">
+    <p>Subscribes to a Zenoh key expression and outputs received samples.</p>
+
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">any</span></dt>
+        <dd>The deserialized payload from the Zenoh sample.</dd>
+
+        <dt>topic <span class="property-type">string</span></dt>
+        <dd>The key expression of the received sample.</dd>
+
+        <dt>zenoh <span class="property-type">object</span></dt>
+        <dd>Additional Zenoh metadata including encoding, kind, timestamp, priority, etc.</dd>
+    </dl>
+
+    <h3>Details</h3>
+    <p>The key expression can include wildcards:</p>
+    <ul>
+        <li><code>*</code> - matches a single chunk</li>
+        <li><code>**</code> - matches multiple chunks</li>
+    </ul>
+    <p>Example: <code>demo/example/**</code> matches all keys under <code>demo/example/</code></p>
+</script>

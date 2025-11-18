@@ -1,0 +1,25 @@
+<script type="text/javascript">
+    RED.nodes.registerType('zenoh-session', {
+        category: 'config',
+        defaults: {
+            locator: { value: 'ws://localhost:10000', required: true }
+        },
+        label: function() {
+            return this.locator || 'zenoh-session';
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="zenoh-session">
+    <div class="form-row">
+        <label for="node-config-input-locator"><i class="fa fa-server"></i> Locator</label>
+        <input type="text" id="node-config-input-locator" placeholder="ws://localhost:10000">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="zenoh-session">
+    <p>Configuration node for a Zenoh session connection.</p>
+    <h3>Details</h3>
+    <p>The locator should be in the format <code>ws://host:port</code> or <code>wss://host:port</code>.</p>
+    <p>This connects to the zenoh-plugin-remote-api WebSocket endpoint.</p>
+</script>
