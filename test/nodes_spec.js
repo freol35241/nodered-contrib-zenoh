@@ -16,6 +16,8 @@ describe('Zenoh Node Unit Tests', function() {
     });
 
     afterEach(function(done) {
+        // Clear log after each test to prevent bleed between tests
+        helper.log().args.length = 0;
         helper.unload().then(function() {
             helper.stopServer(done);
         });
@@ -67,8 +69,9 @@ describe('Zenoh Node Unit Tests', function() {
                     const logEvents = helper.log().args.filter(function(evt) {
                         return evt[0].type === 'zenoh-subscribe';
                     });
-                    logEvents.should.have.length(1);
-                    logEvents[0][0].should.have.property('level', helper.log().ERROR);
+                    logEvents.should.not.be.empty();
+                    logEvents[logEvents.length - 1][0].should.have.property('level', helper.log().ERROR);
+                    logEvents[logEvents.length - 1][0].should.have.property('msg', 'No session configuration provided');
                     done();
                 });
             });
@@ -99,8 +102,9 @@ describe('Zenoh Node Unit Tests', function() {
                     const logEvents = helper.log().args.filter(function(evt) {
                         return evt[0].type === 'zenoh-put';
                     });
-                    logEvents.should.have.length(1);
-                    logEvents[0][0].should.have.property('level', helper.log().ERROR);
+                    logEvents.should.not.be.empty();
+                    logEvents[logEvents.length - 1][0].should.have.property('level', helper.log().ERROR);
+                    logEvents[logEvents.length - 1][0].should.have.property('msg', 'No session configuration provided');
                     done();
                 });
             });
@@ -151,8 +155,9 @@ describe('Zenoh Node Unit Tests', function() {
                     const logEvents = helper.log().args.filter(function(evt) {
                         return evt[0].type === 'zenoh-query';
                     });
-                    logEvents.should.have.length(1);
-                    logEvents[0][0].should.have.property('level', helper.log().ERROR);
+                    logEvents.should.not.be.empty();
+                    logEvents[logEvents.length - 1][0].should.have.property('level', helper.log().ERROR);
+                    logEvents[logEvents.length - 1][0].should.have.property('msg', 'No session configuration provided');
                     done();
                 });
             });
@@ -184,8 +189,9 @@ describe('Zenoh Node Unit Tests', function() {
                     const logEvents = helper.log().args.filter(function(evt) {
                         return evt[0].type === 'zenoh-queryable';
                     });
-                    logEvents.should.have.length(1);
-                    logEvents[0][0].should.have.property('level', helper.log().ERROR);
+                    logEvents.should.not.be.empty();
+                    logEvents[logEvents.length - 1][0].should.have.property('level', helper.log().ERROR);
+                    logEvents[logEvents.length - 1][0].should.have.property('msg', 'No session configuration provided');
                     done();
                 });
             });
