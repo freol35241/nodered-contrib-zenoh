@@ -1,0 +1,42 @@
+{
+  "name": "@freol35241/nodered-contrib-zenoh",
+  "version": "0.1.0",
+  "description": "Node-RED nodes for Eclipse Zenoh integration",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test:unit",
+    "test:unit": "mocha \"test/nodes_spec.js\"",
+    "test:integration": "mocha \"test/integration_spec.js\"",
+    "test:all": "mocha \"test/**/*_spec.js\""
+  },
+  "keywords": [
+    "node-red",
+    "zenoh",
+    "pub-sub",
+    "query"
+  ],
+  "author": "freol35241",
+  "license": "Apache-2.0",
+  "node-red": {
+    "nodes": {
+      "zenoh-session": "nodes/zenoh-session.js",
+      "zenoh-subscribe": "nodes/subscribe.js",
+      "zenoh-put": "nodes/put.js",
+      "zenoh-query": "nodes/query.js",
+      "zenoh-queryable": "nodes/queryable.js"
+    }
+  },
+  "dependencies": {
+    "@eclipse-zenoh/zenoh-ts": "^1.0.0"
+  },
+  "devDependencies": {
+    "mocha": "^10.0.0",
+    "node-red": "^3.1.0",
+    "node-red-node-test-helper": "^0.3.0",
+    "should": "^13.2.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/freol35241/nodered-contrib-zenoh.git"
+  }
+}
