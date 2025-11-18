@@ -4,7 +4,10 @@
   "description": "Node-RED nodes for Eclipse Zenoh integration",
   "main": "index.js",
   "scripts": {
-    "test": "mocha \"test/**/*_spec.js\""
+    "test": "npm run test:unit",
+    "test:unit": "mocha \"test/nodes_spec.js\"",
+    "test:integration": "mocha \"test/integration_spec.js\"",
+    "test:all": "mocha \"test/**/*_spec.js\""
   },
   "keywords": [
     "node-red",
