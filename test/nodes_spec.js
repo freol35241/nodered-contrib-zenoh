@@ -23,6 +23,17 @@ describe('Zenoh Node Unit Tests', function() {
         });
     });
 
+    after(function(done) {
+        // Give any lingering connections time to close, then force exit
+        setTimeout(function() {
+            done();
+            // Force exit after a short delay to prevent hanging on background connections
+            setTimeout(function() {
+                process.exit(0);
+            }, 100);
+        }, 500);
+    });
+
     describe('zenoh-session node', function() {
         it('should be loaded', function(done) {
             const flow = [{ id: 's1', type: 'zenoh-session', locator: 'ws://localhost:10000' }];
