@@ -69,7 +69,7 @@ module.exports = function(RED) {
 
                         if (result.constructor.name === 'Sample') {
                             const replyMsg = {
-                                payload: result.payload().deserialize(),
+                                payload: result.payload(),
                                 topic: result.keyexpr().toString(),
                                 zenoh: {
                                     keyExpr: result.keyexpr().toString(),
@@ -82,13 +82,13 @@ module.exports = function(RED) {
 
                             const attachment = result.attachment();
                             if (attachment) {
-                                replyMsg.zenoh.attachment = attachment.deserialize();
+                                replyMsg.zenoh.attachment = attachment;
                             }
 
                             replies.push(replyMsg);
                         } else {
                             const errorMsg = {
-                                payload: result.payload().deserialize(),
+                                payload: result.payload(),
                                 error: true,
                                 zenoh: {
                                     encoding: result.encoding().toString(),

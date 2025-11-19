@@ -37,7 +37,7 @@ module.exports = function(RED) {
                     const sample = await receiver.receive();
                     if (sample) {
                         const msg = {
-                            payload: sample.payload().deserialize(),
+                            payload: sample.payload(),
                             topic: sample.keyexpr().toString(),
                             zenoh: {
                                 keyExpr: sample.keyexpr().toString(),
@@ -52,7 +52,7 @@ module.exports = function(RED) {
 
                         const attachment = sample.attachment();
                         if (attachment) {
-                            msg.zenoh.attachment = attachment.deserialize();
+                            msg.zenoh.attachment = attachment;
                         }
 
                         node.send(msg);

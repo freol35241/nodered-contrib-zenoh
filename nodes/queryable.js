@@ -41,7 +41,7 @@ module.exports = function(RED) {
                         node.pendingQueries.set(queryId, query);
 
                         const msg = {
-                            payload: query.payload()?.deserialize(),
+                            payload: query.payload(),
                             topic: query.keyExpr().toString(),
                             queryId: queryId,
                             zenoh: {
@@ -54,7 +54,7 @@ module.exports = function(RED) {
 
                         const attachment = query.attachment();
                         if (attachment) {
-                            msg.zenoh.attachment = attachment.deserialize();
+                            msg.zenoh.attachment = attachment;
                         }
 
                         node.send([msg, null]);
