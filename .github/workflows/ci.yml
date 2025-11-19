@@ -54,7 +54,8 @@ jobs:
         cd zenoh_plugins/lib
 
         # Download the remote-api plugin (x86_64-unknown-linux-musl for Docker compatibility)
-        wget -q https://www.eclipse.org/downloads/download.php?file=/zenoh/zenoh-plugin-remote-api/1.6.2/zenoh-ts-1.6.2-x86_64-unknown-linux-musl-standalone.zip -O plugin.zip
+        # Use curl with -L to follow redirects from Eclipse download server
+        curl -L -o plugin.zip "https://download.eclipse.org/zenoh/zenoh-plugin-remote-api/1.6.2/zenoh-ts-1.6.2-x86_64-unknown-linux-musl-standalone.zip"
 
         # Extract the plugin
         unzip -q plugin.zip
