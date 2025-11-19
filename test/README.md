@@ -48,21 +48,34 @@ npm run test:integration
 ```
 
 **Requirements:**
-- **Zenoh router running with WebSocket support on port 10000**
+- **Zenoh router running with remote-api plugin (WebSocket) on port 10000**
+
+**Important:** The zenoh-ts library requires the `remote-api` plugin to be enabled in the Zenoh router. This plugin provides WebSocket connectivity for browser and Node.js applications.
 
 **Setup Instructions:**
 
-#### Option 1: Using Docker (Recommended)
+#### Option 1: Using the Helper Script (Easiest)
 ```bash
-# Start Zenoh router with WebSocket support
+# Start Zenoh router with remote-api plugin configured
+./test/start-zenoh-router.sh
+
+# Run integration tests
+npm run test:integration
+
+# Stop router when done
+docker stop zenoh-router && docker rm zenoh-router
+```
+
+#### Option 2: Using Docker Manually
+```bash
+# Start Zenoh router with remote-api plugin
 docker run -d --name zenoh-router \
   -p 7447:7447 \
   -p 8000:8000 \
   -p 10000:10000 \
+  -v $(pwd)/.github/zenoh-config.json5:/zenoh-config.json5 \
   eclipse/zenoh:latest \
-  -l tcp/0.0.0.0:7447 \
-  -l ws/0.0.0.0:10000 \
-  --rest-http-port 8000
+  zenohd -c /zenoh-config.json5
 
 # Verify router is running
 docker logs zenoh-router
@@ -71,27 +84,50 @@ docker logs zenoh-router
 npm run test:integration
 
 # Stop router when done
-docker stop zenoh-router
-docker rm zenoh-router
+docker stop zenoh-router && docker rm zenoh-router
 ```
 
-#### Option 2: Manual Installation
+#### Option 3: Manual Installation with zenoh-bridge-remote-api
+1. Install zenoh-bridge-remote-api (standalone executable with remote-api plugin built-in):
+   ```bash
+   # On Debian/Ubuntu
+   echo "deb [trusted=yes] https://download.eclipse.org/zenoh/debian-repo/ /" | \
+     sudo tee -a /etc/apt/sources.list.d/zenoh.list > /dev/null
+   sudo apt update
+   sudo apt install zenoh-bridge-remote-api
+   ```
+
+2. Start the bridge:
+   ```bash
+   zenoh-bridge-remote-api --ws-port 10000
+   ```
+
+3. Run tests: `npm run test:integration`
+
+#### Option 4: Manual Installation with zenohd + plugin
 1. Download Zenoh router from https://github.com/eclipse-zenoh/zenoh/releases
-2. Create a configuration file `zenoh-config.json5`:
+2. Install the remote-api plugin:
+   ```bash
+   sudo apt install zenoh-plugin-remote-api
+   ```
+
+3. Use the provided configuration file (`.github/zenoh-config.json5`):
    ```json5
    {
+     mode: "router",
+     plugins_loading: {
+       enabled: true
+     },
      plugins: {
-       rest: {
-         http_port: 8000,
-       },
-     },
-     listen: {
-       endpoints: ["tcp/0.0.0.0:7447", "ws/0.0.0.0:10000"],
-     },
+       remote_api: {
+         websocket_port: "10000"
+       }
+     }
    }
    ```
-3. Start the router: `./zenohd -c zenoh-config.json5`
-4. Run tests: `npm run test:integration`
+
+4. Start the router: `zenohd -c .github/zenoh-config.json5`
+5. Run tests: `npm run test:integration`
 
 **Coverage:**
 - Put/Subscribe messaging
@@ -124,22 +160,27 @@ Integration test failures will cause the CI to fail, ensuring production code qu
 ### Integration Tests Timeout
 **Symptom:** All integration tests timeout after 30 seconds
 
-**Cause:** Zenoh router is not running or not configured for WebSocket on port 10000
+**Cause:** Zenoh router is not running OR remote-api plugin is not enabled/configured
 
 **Solution:**
 1. Check if router is running: `docker ps | grep zenoh`
 2. Check router logs: `docker logs zenoh-router`
-3. Verify WebSocket endpoint: `curl http://localhost:8000/@/router/local`
-4. Ensure port 10000 is not blocked by firewall
+3. **Verify remote-api plugin is loaded:** Look for "remote_api" in router logs
+4. Verify REST API endpoint: `curl http://localhost:8000/@/router/local`
+5. Ensure port 10000 is not blocked by firewall
+6. **Use the provided start script:** `./test/start-zenoh-router.sh`
 
 ### WebSocket Connection Errors
 **Symptom:** "WebSocket error: ErrorEvent" messages in test output
 
-**Cause:** Router not accepting WebSocket connections
+**Cause:** Remote-api plugin not enabled or not configured correctly
 
 **Solution:**
-- Ensure router was started with `-l ws/0.0.0.0:10000` flag
+- **Ensure remote-api plugin is enabled** - This is the most common issue!
+- Use the helper script: `./test/start-zenoh-router.sh`
+- Or manually mount the config file: `-v $(pwd)/.github/zenoh-config.json5:/zenoh-config.json5`
 - Check if another process is using port 10000: `lsof -i :10000` (Linux/Mac) or `netstat -ano | findstr :10000` (Windows)
+- Verify the plugin is loaded: `docker logs zenoh-router | grep remote_api`
 
 ### Test Hangs or Doesn't Exit
 **Symptom:** Tests complete but process doesn't exit

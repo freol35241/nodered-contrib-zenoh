@@ -1,0 +1,11 @@
+{
+  mode: "router",
+  plugins_loading: {
+    enabled: true
+  },
+  plugins: {
+    remote_api: {
+      websocket_port: "10000"
+    }
+  }
+}

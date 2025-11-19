@@ -27,7 +27,7 @@ The `continue-on-error: true` directive allowed integration tests to fail withou
 
 ---
 
-### 2. **Incorrect Zenoh Router Configuration**
+### 2. **Missing remote-api Plugin Configuration**
 **Location:** `.github/workflows/ci.yml` line 53
 
 **Problem:**
@@ -38,31 +38,49 @@ The `continue-on-error: true` directive allowed integration tests to fail withou
     sleep 5
 ```
 
-Issues:
-1. **Missing WebSocket listener flag** - Router wasn't configured to listen on WebSocket port 10000
-2. **Insufficient startup time** - 5 seconds may not be enough for router initialization
-3. **No verification** - No check that router actually started successfully
-4. **Incorrect command format** - Missing `-l ws/0.0.0.0:10000` flag
+**Root Cause:** The zenoh-ts library requires the `remote-api` plugin to be enabled in the Zenoh router. This plugin provides WebSocket connectivity for browser and Node.js applications. The standard command line flags (`-l ws/...`) are for the core Zenoh protocol, NOT for the remote-api plugin that zenoh-ts needs.
 
-**Impact:** HIGH - All integration tests timing out
+Issues:
+1. **Missing remote-api plugin configuration** - The critical issue!
+2. **No configuration file** - Plugin needs to be enabled via config file
+3. **Insufficient startup time** - 5 seconds may not be enough for plugin loading
+4. **No verification** - No check that router and plugin actually started successfully
+
+**Impact:** HIGH - All integration tests timing out because zenoh-ts couldn't connect
 
 **Fix:**
+Created `.github/zenoh-config.json5`:
+```json5
+{
+  mode: "router",
+  plugins_loading: {
+    enabled: true
+  },
+  plugins: {
+    remote_api: {
+      websocket_port: "10000"
+    }
+  }
+}
+```
+
+Updated CI workflow:
 ```yaml
-- name: Start Zenoh router with WebSocket support
+- name: Start Zenoh router with WebSocket support (remote-api plugin)
   run: |
-    # Start Zenoh router with WebSocket enabled on port 10000
+    # Start Zenoh router with remote-api plugin for WebSocket connections
+    # The remote-api plugin is required for zenoh-ts library to connect
     docker run -d --name zenoh-router \
       -p 7447:7447 \
       -p 8000:8000 \
       -p 10000:10000 \
+      -v $(pwd)/.github/zenoh-config.json5:/zenoh-config.json5 \
       eclipse/zenoh:latest \
-      -l tcp/0.0.0.0:7447 \
-      -l ws/0.0.0.0:10000 \
-      --rest-http-port 8000
+      zenohd -c /zenoh-config.json5
 
     # Wait for router to be ready
-    echo "Waiting for Zenoh router to start..."
-    sleep 10
+    echo "Waiting for Zenoh router with remote-api plugin to start..."
+    sleep 15
 
     # Verify router is running
     docker ps | grep zenoh-router
@@ -95,33 +113,49 @@ All 7 integration tests were timing out after 30 seconds:
 7) should receive messages matching wildcard pattern - Timeout of 30000ms exceeded
 ```
 
-**Root Cause:** Tests couldn't connect to Zenoh router because WebSocket endpoint wasn't configured
+**Root Cause:** Tests couldn't connect to Zenoh router because the `remote-api` plugin wasn't enabled. The zenoh-ts library specifically requires this plugin for WebSocket connectivity, not just a WebSocket listener on the router.
 
-**Evidence:** WebSocket error logs showing connection attempts to `ws://localhost:10000` failing repeatedly
+**Evidence:**
+- WebSocket error logs showing connection attempts to `ws://localhost:10000` failing repeatedly
+- zenoh-ts documentation states: "The library requires a WebSocket connection to the zenohd daemon through the zenoh-plugin-remote-api plugin"
+- The examples are configured to access the remote-api plugin on ws://localhost:10000
 
 ---
 
 ## Changes Made
 
-### 1. `.github/workflows/ci.yml`
-- ✅ Removed `continue-on-error: true` (line 63)
-- ✅ Added proper Zenoh router WebSocket configuration
-- ✅ Increased startup wait time from 5s to 10s
+### 1. `.github/zenoh-config.json5` (NEW)
+- ✅ Created configuration file for remote-api plugin
+- ✅ Enables plugin loading
+- ✅ Configures WebSocket port 10000 for remote-api
+
+### 2. `.github/workflows/ci.yml`
+- ✅ Removed `continue-on-error: true` (line 63) - CRITICAL FIX
+- ✅ Added volume mount for zenoh-config.json5
+- ✅ Updated Docker command to use zenohd with config file
+- ✅ Increased startup wait time from 5s to 15s (plugin loading takes time)
 - ✅ Added router verification step
 - ✅ Enhanced debugging output for failures
-- ✅ Added WebSocket connectivity testing
+- ✅ Added WebSocket connectivity testing via REST API
 
-### 2. `test/README.md` (NEW)
-- ✅ Comprehensive test suite documentation
-- ✅ Integration test setup instructions
-- ✅ Docker and manual installation guides
-- ✅ Troubleshooting guide for common issues
-- ✅ CI behavior documentation
+### 3. `test/start-zenoh-router.sh` (NEW)
+- ✅ Helper script for starting Zenoh router locally
+- ✅ Automatically mounts configuration file
+- ✅ Verifies router startup
+- ✅ Provides clear status and endpoint information
+- ✅ Handles cleanup of existing containers
 
-### 3. `CI_INVESTIGATION.md` (THIS FILE)
-- ✅ Documented issues found
-- ✅ Explained root causes
-- ✅ Listed fixes applied
+### 4. `test/README.md`
+- ✅ Updated to explain remote-api plugin requirement
+- ✅ Added helper script as primary setup method
+- ✅ Added 4 different setup options (helper script, Docker manual, zenoh-bridge-remote-api, zenohd+plugin)
+- ✅ Enhanced troubleshooting guide with plugin-specific issues
+- ✅ Added verification commands for checking plugin status
+
+### 5. `CI_INVESTIGATION.md` (THIS FILE)
+- ✅ Documented actual root cause (missing remote-api plugin)
+- ✅ Explained zenoh-ts requirements
+- ✅ Listed all fixes applied
 
 ---
 
@@ -140,16 +174,16 @@ To verify the fixes work:
 
 3. **Local testing:**
    ```bash
-   # Start Zenoh router
-   docker run -d --name zenoh-router \
-     -p 10000:10000 \
-     eclipse/zenoh:latest \
-     -l ws/0.0.0.0:10000
+   # Start Zenoh router with remote-api plugin
+   ./test/start-zenoh-router.sh
 
    # Run integration tests
    npm run test:integration
 
    # Should see all tests passing
+
+   # Verify plugin is loaded
+   docker logs zenoh-router | grep remote_api
    ```
 
 ---
