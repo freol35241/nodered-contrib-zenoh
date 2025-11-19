@@ -50,21 +50,45 @@ jobs:
 
     - name: Start Zenoh router with WebSocket support
       run: |
-        docker run -d --name zenoh-router -p 10000:10000 eclipse/zenoh --rest-http-port 8000
-        sleep 5
+        # Start Zenoh router with WebSocket enabled on port 10000
+        docker run -d --name zenoh-router \
+          -p 7447:7447 \
+          -p 8000:8000 \
+          -p 10000:10000 \
+          eclipse/zenoh:latest \
+          -l tcp/0.0.0.0:7447 \
+          -l ws/0.0.0.0:10000 \
+          --rest-http-port 8000
+
+        # Wait for router to be ready
+        echo "Waiting for Zenoh router to start..."
+        sleep 10
+
+        # Verify router is running
+        docker ps | grep zenoh-router
 
     - name: Check Zenoh router status
       run: |
+        echo "=== Docker container status ==="
         docker ps -a
+        echo ""
+        echo "=== Zenoh router logs ==="
         docker logs zenoh-router || true
+        echo ""
+        echo "=== Testing WebSocket connectivity ==="
+        curl -v http://localhost:8000/@/router/local 2>&1 | head -20 || echo "REST API not responding"
 
     - name: Run integration tests
       run: npm run test:integration
-      continue-on-error: true
 
     - name: Show Zenoh logs on failure
       if: failure()
-      run: docker logs zenoh-router
+      run: |
+        echo "=== Full Zenoh router logs ==="
+        docker logs zenoh-router
+        echo ""
+        echo "=== Container details ==="
+        docker inspect zenoh-router
 
   lint:
     runs-on: ubuntu-latest
