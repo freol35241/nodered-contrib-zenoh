@@ -22,6 +22,54 @@ describe('Zenoh Integration Tests', function() {
         });
     });
 
+    describe('Zenoh Connection', function() {
+        it('should connect to Zenoh router', function(done) {
+            const flow = [
+                {
+                    id: 'session1',
+                    type: 'zenoh-session',
+                    locator: 'ws://localhost:10000'
+                }
+            ];
+
+            helper.load([sessionNode], flow, function(err) {
+                if (err) return done(err);
+
+                const session1 = helper.getNode('session1');
+                let testCompleted = false;
+
+                // Catch any errors from the session node
+                session1.on('call:error', function(msg) {
+                    if (!testCompleted) {
+                        testCompleted = true;
+                        done(new Error('Failed to connect to Zenoh router: ' + msg));
+                    }
+                });
+
+                // Try to get a session - this will trigger connection
+                setTimeout(async function() {
+                    try {
+                        const session = await session1.getSession();
+                        if (session && !session.isClosed()) {
+                            testCompleted = true;
+                            done();
+                        } else {
+                            if (!testCompleted) {
+                                testCompleted = true;
+                                done(new Error('Session is closed or null'));
+                            }
+                        }
+                    } catch (err) {
+                        if (!testCompleted) {
+                            testCompleted = true;
+                            done(new Error('Connection error: ' + err.message));
+                        }
+                    }
+                }, 1000);
+            });
+        });
+    });
+
     describe('Put and Subscribe Integration', function() {
         it('should publish and receive a message', function(done) {
             const flow = [
@@ -48,16 +96,35 @@ describe('Zenoh Integration Tests', function() {
                 { id: 'helper1', type: 'helper' }
             ];
 
-            helper.load([sessionNode, subscribeNode, putNode], flow, function() {
+            helper.load([sessionNode, subscribeNode, putNode], flow, function(err) {
+                if (err) return done(err);
+
                 const helper1 = helper.getNode('helper1');
                 const put1 = helper.getNode('put1');
+                const session1 = helper.getNode('session1');
+                const sub1 = helper.getNode('sub1');
 
                 let messageReceived = false;
+                let testTimeout = null;
+
+                // Set up error handlers for Zenoh nodes
+                const errorHandler = function(msg) {
+                    if (!messageReceived) {
+                        messageReceived = true;
+                        clearTimeout(testTimeout);
+                        done(new Error('Zenoh error: ' + msg));
+                    }
+                };
+
+                // Listen for status changes that indicate connection issues
+                session1.on('call:error', errorHandler);
+                sub1.on('call:error', errorHandler);
 
                 helper1.on('input', function(msg) {
                     try {
                         if (!messageReceived) {
                             messageReceived = true;
+                            clearTimeout(testTimeout);
                             msg.should.have.property('payload', 'Hello Zenoh!');
                             msg.should.have.property('topic', 'test/integration/pubsub');
                             msg.should.have.property('zenoh');
@@ -68,6 +135,14 @@ describe('Zenoh Integration Tests', function() {
                         done(err);
                     }
                 });
+
+                // Set a timeout that provides a better error message
+                testTimeout = setTimeout(function() {
+                    if (!messageReceived) {
+                        messageReceived = true;
+                        done(new Error('Test timeout: No message received from Zenoh. Check if Zenoh router is accessible at ws://localhost:10000 and remote-api plugin is working.'));
+                    }
+                }, 10000);
 
                 // Wait a bit for subscriber to be ready
                 setTimeout(function() {
