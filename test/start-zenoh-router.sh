@@ -56,6 +56,8 @@ docker run -d --name zenoh-router \
   -v "$PLUGIN_DIR:/root/.zenoh" \
   eclipse/zenoh:$PLUGIN_VERSION \
   --cfg='mode:"router"' \
+  --cfg='listen:["tcp/0.0.0.0:7447"]' \
+  --cfg='plugins/rest/http_port:8000' \
   --cfg='plugins/remote_api/websocket_port:10000'
 
 echo ""
