@@ -126,7 +126,7 @@ module.exports = function(RED) {
                         buffer = Buffer.from(String(errorPayload), 'utf8');
                     }
 
-                    const { ZBytes } = await import('zenoh');
+                    const { ZBytes } = require('zenoh');
                     const options = {};
                     if (msg.encoding) {
                         options.encoding = msg.encoding;
@@ -161,7 +161,7 @@ module.exports = function(RED) {
                         buffer = Buffer.from(String(payload), 'utf8');
                     }
 
-                    const { ZBytes } = await import('zenoh');
+                    const { ZBytes } = require('zenoh');
                     const options = {};
                     if (msg.encoding) {
                         options.encoding = msg.encoding;
