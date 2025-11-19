@@ -17,6 +17,9 @@
   ],
   "author": "freol35241",
   "license": "Apache-2.0",
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "node-red": {
     "nodes": {
       "zenoh-session": "nodes/zenoh-session.js",
