@@ -17,6 +17,9 @@
   ],
   "author": "freol35241",
   "license": "Apache-2.0",
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "node-red": {
     "nodes": {
       "zenoh-session": "nodes/zenoh-session.js",
@@ -27,7 +30,8 @@
     }
   },
   "dependencies": {
-    "@eclipse-zenoh/zenoh-ts": "^1.0.0"
+    "@eclipse-zenoh/zenoh-ts": "^1.0.0",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "mocha": "^10.0.0",

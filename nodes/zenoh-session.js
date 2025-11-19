@@ -1,8 +1,72 @@
+// Setup WebSocket for Node.js environment
+// zenoh-ts expects WebSocket to be available globally
+if (typeof WebSocket === 'undefined') {
+    try {
+        global.WebSocket = require('ws');
+    } catch (err) {
+        // Will be caught later when trying to load zenoh-ts
+        console.error('Failed to load WebSocket implementation:', err.message);
+    }
+}
+
 let zenoh = null;
 
 async function loadZenoh() {
     if (!zenoh) {
-        zenoh = await import('@eclipse-zenoh/zenoh-ts');
+        try {
+            zenoh = await import('@eclipse-zenoh/zenoh-ts');
+        } catch (err) {
+            // Check if this is a WASM loading error
+            if (err.code === 'ERR_UNKNOWN_FILE_EXTENSION' && err.message.includes('.wasm')) {
+                const helpMessage = [
+                    'Failed to load Zenoh library: WASM module support is required.',
+                    '',
+                    'To fix this, you need to start Node-RED with WASM support enabled.',
+                    'Choose one of these methods:',
+                    '',
+                    '1. Set NODE_OPTIONS environment variable:',
+                    '   export NODE_OPTIONS="--experimental-wasm-modules --no-warnings"',
+                    '   node-red',
+                    '',
+                    '2. Or start Node-RED directly with flags:',
+                    '   node --experimental-wasm-modules --no-warnings node_modules/node-red/red.js',
+                    '',
+                    '3. Or add to your Node-RED settings.js:',
+                    '   process.execArgv.push("--experimental-wasm-modules");',
+                    '',
+                    'Note: This requires Node.js 16.x or higher.',
+                    ''
+                ].join('\n');
+
+                const newError = new Error(helpMessage);
+                newError.code = 'ZENOH_WASM_NOT_SUPPORTED';
+                newError.originalError = err;
+                throw newError;
+            }
+
+            // Check if this is a WebSocket error
+            if (err instanceof ReferenceError && err.message.includes('WebSocket')) {
+                const helpMessage = [
+                    'Failed to load Zenoh library: WebSocket is not available.',
+                    '',
+                    'This usually means the "ws" package is not installed.',
+                    'Please run: npm install',
+                    '',
+                    'If the problem persists, try reinstalling dependencies:',
+                    '  rm -rf node_modules package-lock.json',
+                    '  npm install',
+                    ''
+                ].join('\n');
+
+                const newError = new Error(helpMessage);
+                newError.code = 'ZENOH_WEBSOCKET_NOT_AVAILABLE';
+                newError.originalError = err;
+                throw newError;
+            }
+
+            // Re-throw other errors as-is
+            throw err;
+        }
     }
     return zenoh;
 }

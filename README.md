@@ -12,6 +12,78 @@ This package provides Node-RED nodes to interact with Eclipse Zenoh, a "Zero Ove
 npm install @freol35241/nodered-contrib-zenoh
 ```
 
+## Requirements
+
+- **Node.js**: Version 16.x or higher
+- **WASM Support**: The zenoh-ts library uses WebAssembly modules for key expression parsing. Node.js must be configured to load WASM files.
+- **WebSocket**: Automatically provided via the `ws` package for Node.js compatibility.
+
+### Enabling WASM Support
+
+Node-RED must be started with WASM module support enabled. Choose one of these methods:
+
+#### Method 1: Environment Variable (Recommended)
+
+Set the `NODE_OPTIONS` environment variable before starting Node-RED:
+
+```bash
+export NODE_OPTIONS="--experimental-wasm-modules --no-warnings"
+node-red
+```
+
+To make this permanent, add it to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.):
+
+```bash
+echo 'export NODE_OPTIONS="--experimental-wasm-modules --no-warnings"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+#### Method 2: Direct Node.js Flags
+
+Start Node-RED directly with the required flags:
+
+```bash
+node --experimental-wasm-modules --no-warnings $(which node-red)
+```
+
+Or if you have Node-RED installed locally:
+
+```bash
+node --experimental-wasm-modules --no-warnings node_modules/node-red/red.js
+```
+
+#### Method 3: Node-RED Settings File
+
+Add the following to your Node-RED `settings.js` file (usually located at `~/.node-red/settings.js`):
+
+```javascript
+// At the top of the file, before module.exports
+if (!process.execArgv.includes('--experimental-wasm-modules')) {
+    console.log('Note: WASM support not enabled. Some Zenoh features may not work.');
+    console.log('Consider setting NODE_OPTIONS="--experimental-wasm-modules --no-warnings"');
+}
+```
+
+#### Docker/Container Environments
+
+If running Node-RED in Docker, set the environment variable in your docker-compose.yml:
+
+```yaml
+services:
+  node-red:
+    image: nodered/node-red:latest
+    environment:
+      - NODE_OPTIONS=--experimental-wasm-modules --no-warnings
+```
+
+Or pass it with `docker run`:
+
+```bash
+docker run -e NODE_OPTIONS="--experimental-wasm-modules --no-warnings" -p 1880:1880 nodered/node-red
+```
+
+**Note**: If you see an error message like `Unknown file extension ".wasm"`, it means WASM support is not enabled. Follow one of the methods above to enable it.
+
 ## Prerequisites
 
 You need a running Zenoh router with the `zenoh-plugin-remote-api` WebSocket plugin enabled:
