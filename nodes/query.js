@@ -46,8 +46,8 @@ module.exports = function(RED) {
                         buffer = Buffer.from(String(msg.payload), 'utf8');
                     }
 
-                    const { ZBytes } = require('zenoh');
-                    options.payload = new ZBytes(buffer);
+                    // Pass buffer directly - zenoh-ts handles ZBytes conversion internally
+                    options.payload = buffer;
                 }
                 if (msg.encoding) {
                     options.encoding = msg.encoding;

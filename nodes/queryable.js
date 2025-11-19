@@ -126,12 +126,12 @@ module.exports = function(RED) {
                         buffer = Buffer.from(String(errorPayload), 'utf8');
                     }
 
-                    const { ZBytes } = require('zenoh');
+                    // Pass buffer directly - zenoh-ts handles ZBytes conversion internally
                     const options = {};
                     if (msg.encoding) {
                         options.encoding = msg.encoding;
                     }
-                    await query.replyErr(new ZBytes(buffer), options);
+                    await query.replyErr(buffer, options);
                 } else {
                     const keyExpr = msg.keyExpr || msg.topic;
                     if (!keyExpr) {
@@ -161,7 +161,7 @@ module.exports = function(RED) {
                         buffer = Buffer.from(String(payload), 'utf8');
                     }
 
-                    const { ZBytes } = require('zenoh');
+                    // Pass buffer directly - zenoh-ts handles ZBytes conversion internally
                     const options = {};
                     if (msg.encoding) {
                         options.encoding = msg.encoding;
@@ -170,7 +170,7 @@ module.exports = function(RED) {
                         options.attachment = msg.attachment;
                     }
 
-                    await query.reply(keyExpr, new ZBytes(buffer), options);
+                    await query.reply(keyExpr, buffer, options);
                 }
 
                 done();

@@ -80,11 +80,8 @@ module.exports = function(RED) {
                     options.timestamp = msg.timestamp;
                 }
 
-                // Import zenoh to access ZBytes constructor
-                const { ZBytes } = require('zenoh');
-
-                // Wrap buffer in ZBytes and send
-                await session.put(keyExpr, new ZBytes(buffer), options);
+                // Pass buffer directly - zenoh-ts handles ZBytes conversion internally
+                await session.put(keyExpr, buffer, options);
 
                 node.status({ fill: 'green', shape: 'dot', text: 'sent' });
                 setTimeout(() => { node.status({}); }, 1000);
