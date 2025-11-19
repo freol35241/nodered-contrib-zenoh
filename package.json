@@ -30,7 +30,7 @@
     }
   },
   "dependencies": {
-    "@eclipse-zenoh/zenoh-ts": "^1.0.0",
+    "@eclipse-zenoh/zenoh-ts": "^1.6.2",
     "ws": "^8.18.0"
   },
   "devDependencies": {
