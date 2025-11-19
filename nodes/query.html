@@ -6,7 +6,9 @@
             name: { value: '' },
             session: { value: '', type: 'zenoh-session', required: true },
             selector: { value: '' },
-            timeout: { value: 10000, validate: RED.validators.number() }
+            timeout: { value: 10000, validate: RED.validators.number() },
+            target: { value: '' },
+            consolidation: { value: '' }
         },
         inputs: 1,
         outputs: 1,
@@ -29,6 +31,25 @@
     <div class="form-row">
         <label for="node-input-timeout"><i class="fa fa-clock-o"></i> Timeout (ms)</label>
         <input type="number" id="node-input-timeout" placeholder="10000">
+    </div>
+    <div class="form-row">
+        <label for="node-input-target"><i class="fa fa-bullseye"></i> Target</label>
+        <select id="node-input-target">
+            <option value="">Best Matching (default)</option>
+            <option value="0">Best Matching</option>
+            <option value="1">All</option>
+            <option value="2">All Complete</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-consolidation"><i class="fa fa-compress"></i> Consolidation</label>
+        <select id="node-input-consolidation">
+            <option value="">Auto (default)</option>
+            <option value="0">Auto</option>
+            <option value="1">None</option>
+            <option value="2">Monotonic</option>
+            <option value="3">Latest</option>
+        </select>
     </div>
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
@@ -54,7 +75,28 @@
         <dd>The encoding type for the query payload.</dd>
 
         <dt class="optional">timeout <span class="property-type">number</span></dt>
-        <dd>Timeout in milliseconds for the query.</dd>
+        <dd>Timeout in milliseconds for the query. Overrides configured timeout.</dd>
+
+        <dt class="optional">target <span class="property-type">number</span></dt>
+        <dd>Query target: BEST_MATCHING=0, ALL=1, ALL_COMPLETE=2. Overrides configured target.</dd>
+
+        <dt class="optional">consolidation <span class="property-type">number</span></dt>
+        <dd>Consolidation mode: AUTO=0, NONE=1, MONOTONIC=2, LATEST=3. Overrides configured consolidation.</dd>
+
+        <dt class="optional">congestionControl <span class="property-type">number</span></dt>
+        <dd>Congestion control: DROP=0, BLOCK=1.</dd>
+
+        <dt class="optional">priority <span class="property-type">number</span></dt>
+        <dd>Query priority (1-7): REAL_TIME=1, INTERACTIVE_HIGH=2, INTERACTIVE_LOW=3, DATA_HIGH=4, DATA=5, DATA_LOW=6, BACKGROUND=7.</dd>
+
+        <dt class="optional">express <span class="property-type">boolean</span></dt>
+        <dd>If true, query will not be batched (better latency, lower throughput).</dd>
+
+        <dt class="optional">allowedDestination <span class="property-type">number</span></dt>
+        <dd>Allowed destination locality: SESSION_LOCAL=0, REMOTE=1, ANY=2.</dd>
+
+        <dt class="optional">acceptReplies <span class="property-type">number</span></dt>
+        <dd>Reply key expression filter: ANY=0, MATCHING_QUERY=1.</dd>
 
         <dt class="optional">attachment <span class="property-type">any</span></dt>
         <dd>Additional data to send with the query.</dd>
@@ -70,4 +112,17 @@
     <p>Issues a query to Zenoh queryables matching the selector and collects all replies.</p>
     <p>The selector can include parameters: <code>demo/example/**?arg1=value1;arg2=value2</code></p>
     <p>Replies are collected until the timeout expires or all queryables have responded.</p>
+    <p><b>Target</b> determines which queryables receive the query:</p>
+    <ul>
+        <li><b>Best Matching (0)</b> - Query the best matching queryable (default)</li>
+        <li><b>All (1)</b> - Query all matching queryables</li>
+        <li><b>All Complete (2)</b> - Query all matching queryables declared as complete</li>
+    </ul>
+    <p><b>Consolidation</b> controls how duplicate replies are handled:</p>
+    <ul>
+        <li><b>Auto (0)</b> - Apply automatic consolidation based on queryable preferences (default)</li>
+        <li><b>None (1)</b> - No consolidation; multiple samples may be received for same key-timestamp</li>
+        <li><b>Monotonic (2)</b> - Forward samples except if more recent timestamp seen for same key</li>
+        <li><b>Latest (3)</b> - Only send samples with highest timestamp for each key</li>
+    </ul>
 </script>

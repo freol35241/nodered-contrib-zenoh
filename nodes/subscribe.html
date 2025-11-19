@@ -5,7 +5,8 @@
         defaults: {
             name: { value: '' },
             session: { value: '', type: 'zenoh-session', required: true },
-            keyExpr: { value: '', required: true }
+            keyExpr: { value: '', required: true },
+            allowedOrigin: { value: '' }
         },
         inputs: 0,
         outputs: 1,
@@ -24,6 +25,15 @@
     <div class="form-row">
         <label for="node-input-keyExpr"><i class="fa fa-tag"></i> Key Expression</label>
         <input type="text" id="node-input-keyExpr" placeholder="demo/example/**">
+    </div>
+    <div class="form-row">
+        <label for="node-input-allowedOrigin"><i class="fa fa-globe"></i> Allowed Origin</label>
+        <select id="node-input-allowedOrigin">
+            <option value="">Any (default)</option>
+            <option value="0">Session Local</option>
+            <option value="1">Remote</option>
+            <option value="2">Any</option>
+        </select>
     </div>
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
@@ -53,4 +63,10 @@
         <li><code>**</code> - matches multiple chunks</li>
     </ul>
     <p>Example: <code>demo/example/**</code> matches all keys under <code>demo/example/</code></p>
+    <p>The <b>Allowed Origin</b> option filters samples based on their origin:</p>
+    <ul>
+        <li><b>Session Local (0)</b> - Only receive samples from the local session</li>
+        <li><b>Remote (1)</b> - Only receive samples from remote sources</li>
+        <li><b>Any (2)</b> - Receive samples from any source (default)</li>
+    </ul>
 </script>

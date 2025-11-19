@@ -5,7 +5,9 @@
         defaults: {
             name: { value: '' },
             session: { value: '', type: 'zenoh-session', required: true },
-            keyExpr: { value: '', required: true }
+            keyExpr: { value: '', required: true },
+            complete: { value: false },
+            allowedOrigin: { value: '' }
         },
         inputs: 1,
         outputs: 2,
@@ -25,6 +27,20 @@
     <div class="form-row">
         <label for="node-input-keyExpr"><i class="fa fa-tag"></i> Key Expression</label>
         <input type="text" id="node-input-keyExpr" placeholder="demo/example/**">
+    </div>
+    <div class="form-row">
+        <label for="node-input-complete"><i class="fa fa-check-circle"></i> Complete</label>
+        <input type="checkbox" id="node-input-complete" style="display:inline-block; width:auto; vertical-align:baseline;">
+        <label for="node-input-complete" style="width:auto; margin-left:5px;">Mark this queryable as complete</label>
+    </div>
+    <div class="form-row">
+        <label for="node-input-allowedOrigin"><i class="fa fa-globe"></i> Allowed Origin</label>
+        <select id="node-input-allowedOrigin">
+            <option value="">Any (default)</option>
+            <option value="0">Session Local</option>
+            <option value="1">Remote</option>
+            <option value="2">Any</option>
+        </select>
     </div>
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
@@ -90,4 +106,12 @@
     </ul>
     <p>Multiple replies can be sent for a single query. When done, send a message with <code>finalize: true</code>.</p>
     <p>To send an error reply, set <code>error: true</code>.</p>
+    <p><b>Complete</b> flag indicates that this queryable can provide complete data for its key expression.
+    Queries with target "All Complete" will only be sent to queryables marked as complete.</p>
+    <p>The <b>Allowed Origin</b> option filters queries based on their origin:</p>
+    <ul>
+        <li><b>Session Local (0)</b> - Only respond to queries from the local session</li>
+        <li><b>Remote (1)</b> - Only respond to queries from remote sources</li>
+        <li><b>Any (2)</b> - Respond to queries from any source (default)</li>
+    </ul>
 </script>

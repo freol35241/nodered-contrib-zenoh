@@ -45,14 +45,29 @@
         <dt class="optional">topic <span class="property-type">string</span></dt>
         <dd>Alternative to keyExpr. The key expression to publish to.</dd>
 
-        <dt class="optional">encoding <span class="property-type">string</span></dt>
-        <dd>The encoding type for the payload.</dd>
+        <dt class="optional">encoding <span class="property-type">string | object</span></dt>
+        <dd>The encoding type for the payload (e.g., "application/json", "text/plain").</dd>
 
         <dt class="optional">priority <span class="property-type">number</span></dt>
-        <dd>The priority level for the message.</dd>
+        <dd>Message priority (1-7): REAL_TIME=1, INTERACTIVE_HIGH=2, INTERACTIVE_LOW=3, DATA_HIGH=4, DATA=5, DATA_LOW=6, BACKGROUND=7.</dd>
+
+        <dt class="optional">congestionControl <span class="property-type">number</span></dt>
+        <dd>Congestion control: DROP=0, BLOCK=1.</dd>
+
+        <dt class="optional">express <span class="property-type">boolean</span></dt>
+        <dd>If true, message will not be batched (better latency, lower throughput).</dd>
+
+        <dt class="optional">reliability <span class="property-type">number</span></dt>
+        <dd>Reliability: BEST_EFFORT=0, RELIABLE=1.</dd>
+
+        <dt class="optional">allowedDestination <span class="property-type">number</span></dt>
+        <dd>Allowed destination locality: SESSION_LOCAL=0, REMOTE=1, ANY=2.</dd>
 
         <dt class="optional">attachment <span class="property-type">any</span></dt>
         <dd>Additional data to send with the payload.</dd>
+
+        <dt class="optional">timestamp <span class="property-type">object</span></dt>
+        <dd>Timestamp object for the message.</dd>
     </dl>
 
     <h3>Details</h3>

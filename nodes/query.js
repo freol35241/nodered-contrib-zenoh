@@ -4,8 +4,10 @@ module.exports = function(RED) {
         const node = this;
 
         this.selector = config.selector;
-        this.sessionConfig = RED.nodes.getNode(config.session);
         this.timeout = config.timeout || 10000;
+        this.target = config.target;
+        this.consolidation = config.consolidation;
+        this.sessionConfig = RED.nodes.getNode(config.session);
 
         if (!this.sessionConfig) {
             this.error('No session configuration provided');
@@ -40,9 +42,28 @@ module.exports = function(RED) {
                 }
                 if (msg.target !== undefined) {
                     options.target = msg.target;
+                } else if (node.target !== undefined && node.target !== '') {
+                    options.target = parseInt(node.target);
                 }
                 if (msg.consolidation !== undefined) {
                     options.consolidation = msg.consolidation;
+                } else if (node.consolidation !== undefined && node.consolidation !== '') {
+                    options.consolidation = parseInt(node.consolidation);
+                }
+                if (msg.congestionControl !== undefined) {
+                    options.congestionControl = msg.congestionControl;
+                }
+                if (msg.priority !== undefined) {
+                    options.priority = msg.priority;
+                }
+                if (msg.express !== undefined) {
+                    options.express = msg.express;
+                }
+                if (msg.allowedDestination !== undefined) {
+                    options.allowedDestination = msg.allowedDestination;
+                }
+                if (msg.acceptReplies !== undefined) {
+                    options.acceptReplies = msg.acceptReplies;
                 }
                 if (msg.attachment !== undefined) {
                     options.attachment = msg.attachment;
