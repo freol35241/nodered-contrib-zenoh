@@ -4,9 +4,9 @@ module.exports = function(RED) {
         const node = this;
 
         this.selector = config.selector;
-        this.timeout = (typeof config.timeout === 'number' && !isNaN(config.timeout))
-            ? config.timeout
-            : (parseInt(config.timeout) || 10000);
+        // Ensure timeout is always a valid number to prevent stack overflow in typed-duration
+        const parsedTimeout = typeof config.timeout === 'number' ? config.timeout : parseInt(config.timeout);
+        this.timeout = (!isNaN(parsedTimeout) && parsedTimeout > 0) ? parsedTimeout : 10000;
         this.target = config.target;
         this.consolidation = config.consolidation;
         this.encoding = config.encoding;
@@ -66,12 +66,15 @@ module.exports = function(RED) {
 
                 // Apply timeout: msg overrides config
                 if (msg.timeout !== undefined) {
-                    const timeoutMs = (typeof msg.timeout === 'number' && !isNaN(msg.timeout))
-                        ? msg.timeout
-                        : parseInt(msg.timeout) || 10000;
+                    const parsedMsgTimeout = typeof msg.timeout === 'number' ? msg.timeout : parseInt(msg.timeout);
+                    const timeoutMs = (!isNaN(parsedMsgTimeout) && parsedMsgTimeout > 0) ? parsedMsgTimeout : 10000;
                     options.timeout = { secs: 0, nanos: timeoutMs * 1000000 };
                 } else if (node.timeout) {
-                    options.timeout = { secs: 0, nanos: node.timeout * 1000000 };
+                    // Ensure node.timeout is a valid number
+                    const timeoutMs = (typeof node.timeout === 'number' && !isNaN(node.timeout) && node.timeout > 0)
+                        ? node.timeout
+                        : 10000;
+                    options.timeout = { secs: 0, nanos: timeoutMs * 1000000 };
                 }
 
                 // Apply target: msg overrides config
