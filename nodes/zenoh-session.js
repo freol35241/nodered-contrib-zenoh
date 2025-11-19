@@ -1,3 +1,14 @@
+// Setup WebSocket for Node.js environment
+// zenoh-ts expects WebSocket to be available globally
+if (typeof WebSocket === 'undefined') {
+    try {
+        global.WebSocket = require('ws');
+    } catch (err) {
+        // Will be caught later when trying to load zenoh-ts
+        console.error('Failed to load WebSocket implementation:', err.message);
+    }
+}
+
 let zenoh = null;
 
 async function loadZenoh() {
@@ -32,6 +43,27 @@ async function loadZenoh() {
                 newError.originalError = err;
                 throw newError;
             }
+
+            // Check if this is a WebSocket error
+            if (err instanceof ReferenceError && err.message.includes('WebSocket')) {
+                const helpMessage = [
+                    'Failed to load Zenoh library: WebSocket is not available.',
+                    '',
+                    'This usually means the "ws" package is not installed.',
+                    'Please run: npm install',
+                    '',
+                    'If the problem persists, try reinstalling dependencies:',
+                    '  rm -rf node_modules package-lock.json',
+                    '  npm install',
+                    ''
+                ].join('\n');
+
+                const newError = new Error(helpMessage);
+                newError.code = 'ZENOH_WEBSOCKET_NOT_AVAILABLE';
+                newError.originalError = err;
+                throw newError;
+            }
+
             // Re-throw other errors as-is
             throw err;
         }

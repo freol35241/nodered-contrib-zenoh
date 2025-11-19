@@ -16,6 +16,7 @@ npm install @freol35241/nodered-contrib-zenoh
 
 - **Node.js**: Version 16.x or higher
 - **WASM Support**: The zenoh-ts library uses WebAssembly modules for key expression parsing. Node.js must be configured to load WASM files.
+- **WebSocket**: Automatically provided via the `ws` package for Node.js compatibility.
 
 ### Enabling WASM Support
 
