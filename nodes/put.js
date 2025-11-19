@@ -81,7 +81,7 @@ module.exports = function(RED) {
                 }
 
                 // Import zenoh to access ZBytes constructor
-                const { ZBytes } = await import('zenoh');
+                const { ZBytes } = require('zenoh');
 
                 // Wrap buffer in ZBytes and send
                 await session.put(keyExpr, new ZBytes(buffer), options);
