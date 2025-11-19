@@ -48,19 +48,35 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    - name: Download and setup Zenoh remote-api plugin
+      run: |
+        mkdir -p zenoh_plugins/lib
+        cd zenoh_plugins/lib
+
+        # Download the remote-api plugin (x86_64-unknown-linux-musl for Docker compatibility)
+        wget -q https://www.eclipse.org/downloads/download.php?file=/zenoh/zenoh-plugin-remote-api/1.6.2/zenoh-ts-1.6.2-x86_64-unknown-linux-musl-standalone.zip -O plugin.zip
+
+        # Extract the plugin
+        unzip -q plugin.zip
+
+        # Verify plugin was extracted
+        ls -la
+        cd ../..
+
     - name: Start Zenoh router with WebSocket support (remote-api plugin)
       run: |
-        # Start Zenoh router with remote-api plugin for WebSocket connections
+        # Start Zenoh router v1.6.2 with remote-api plugin for WebSocket connections
         # The remote-api plugin is required for zenoh-ts library to connect
         docker run -d --name zenoh-router \
           -p 7447:7447 \
           -p 8000:8000 \
           -p 10000:10000 \
-          -v $(pwd)/.github/zenoh-config.json5:/zenoh-config.json5 \
-          eclipse/zenoh:latest \
-          zenohd -c /zenoh-config.json5
+          -v $(pwd)/zenoh_plugins:/root/.zenoh \
+          eclipse/zenoh:1.6.2 \
+          --cfg='mode:"router"' \
+          --cfg='plugins/remote_api/websocket_port:10000'
 
-        # Wait for router to be ready
+        # Wait for router and plugin to be ready
         echo "Waiting for Zenoh router with remote-api plugin to start..."
         sleep 15
 

@@ -50,13 +50,15 @@ npm run test:integration
 **Requirements:**
 - **Zenoh router running with remote-api plugin (WebSocket) on port 10000**
 
-**Important:** The zenoh-ts library requires the `remote-api` plugin to be enabled in the Zenoh router. This plugin provides WebSocket connectivity for browser and Node.js applications.
+**Important:** The zenoh-ts library requires the `remote-api` plugin to be enabled in the Zenoh router. This plugin provides WebSocket connectivity for browser and Node.js applications. The plugin must be the x86_64-unknown-linux-musl version for Docker compatibility.
 
 **Setup Instructions:**
 
-#### Option 1: Using the Helper Script (Easiest)
+#### Option 1: Using the Helper Script (Easiest - Recommended)
+The helper script automatically downloads the plugin and configures everything:
+
 ```bash
-# Start Zenoh router with remote-api plugin configured
+# Start Zenoh router with remote-api plugin (auto-downloads if needed)
 ./test/start-zenoh-router.sh
 
 # Run integration tests
@@ -66,24 +68,38 @@ npm run test:integration
 docker stop zenoh-router && docker rm zenoh-router
 ```
 
+The script will:
+- Download the remote-api plugin v1.6.2 if not present
+- Start Zenoh router v1.6.2 with the plugin loaded
+- Configure WebSocket on port 10000
+
 #### Option 2: Using Docker Manually
 ```bash
-# Start Zenoh router with remote-api plugin
+# 1. Download the remote-api plugin (only needed once)
+mkdir -p zenoh_plugins/lib
+cd zenoh_plugins/lib
+wget -O plugin.zip "https://www.eclipse.org/downloads/download.php?file=/zenoh/zenoh-plugin-remote-api/1.6.2/zenoh-ts-1.6.2-x86_64-unknown-linux-musl-standalone.zip"
+unzip plugin.zip
+rm plugin.zip
+cd ../..
+
+# 2. Start Zenoh router with remote-api plugin
 docker run -d --name zenoh-router \
   -p 7447:7447 \
   -p 8000:8000 \
   -p 10000:10000 \
-  -v $(pwd)/.github/zenoh-config.json5:/zenoh-config.json5 \
-  eclipse/zenoh:latest \
-  zenohd -c /zenoh-config.json5
+  -v $(pwd)/zenoh_plugins:/root/.zenoh \
+  eclipse/zenoh:1.6.2 \
+  --cfg='mode:"router"' \
+  --cfg='plugins/remote_api/websocket_port:10000'
 
-# Verify router is running
+# 3. Verify router and plugin are running
 docker logs zenoh-router
 
-# Run integration tests
+# 4. Run integration tests
 npm run test:integration
 
-# Stop router when done
+# 5. Stop router when done
 docker stop zenoh-router && docker rm zenoh-router
 ```
 

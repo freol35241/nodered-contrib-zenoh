@@ -49,36 +49,36 @@ Issues:
 **Impact:** HIGH - All integration tests timing out because zenoh-ts couldn't connect
 
 **Fix:**
-Created `.github/zenoh-config.json5`:
-```json5
-{
-  mode: "router",
-  plugins_loading: {
-    enabled: true
-  },
-  plugins: {
-    remote_api: {
-      websocket_port: "10000"
-    }
-  }
-}
-```
+The remote-api plugin binary must be downloaded and mounted as a volume to `/root/.zenoh` in the Docker container. The plugin must be the `x86_64-unknown-linux-musl` version for Docker compatibility.
 
 Updated CI workflow:
 ```yaml
+- name: Download and setup Zenoh remote-api plugin
+  run: |
+    mkdir -p zenoh_plugins/lib
+    cd zenoh_plugins/lib
+
+    # Download the remote-api plugin (x86_64-unknown-linux-musl for Docker compatibility)
+    wget -q https://www.eclipse.org/downloads/download.php?file=/zenoh/zenoh-plugin-remote-api/1.6.2/zenoh-ts-1.6.2-x86_64-unknown-linux-musl-standalone.zip -O plugin.zip
+
+    # Extract the plugin
+    unzip -q plugin.zip
+    ls -la
+    cd ../..
+
 - name: Start Zenoh router with WebSocket support (remote-api plugin)
   run: |
-    # Start Zenoh router with remote-api plugin for WebSocket connections
-    # The remote-api plugin is required for zenoh-ts library to connect
+    # Start Zenoh router v1.6.2 with remote-api plugin for WebSocket connections
     docker run -d --name zenoh-router \
       -p 7447:7447 \
       -p 8000:8000 \
       -p 10000:10000 \
-      -v $(pwd)/.github/zenoh-config.json5:/zenoh-config.json5 \
-      eclipse/zenoh:latest \
-      zenohd -c /zenoh-config.json5
+      -v $(pwd)/zenoh_plugins:/root/.zenoh \
+      eclipse/zenoh:1.6.2 \
+      --cfg='mode:"router"' \
+      --cfg='plugins/remote_api/websocket_port:10000'
 
-    # Wait for router to be ready
+    # Wait for router and plugin to be ready
     echo "Waiting for Zenoh router with remote-api plugin to start..."
     sleep 15
 
@@ -124,37 +124,40 @@ All 7 integration tests were timing out after 30 seconds:
 
 ## Changes Made
 
-### 1. `.github/zenoh-config.json5` (NEW)
-- ✅ Created configuration file for remote-api plugin
-- ✅ Enables plugin loading
-- ✅ Configures WebSocket port 10000 for remote-api
-
-### 2. `.github/workflows/ci.yml`
+### 1. `.github/workflows/ci.yml`
 - ✅ Removed `continue-on-error: true` (line 63) - CRITICAL FIX
-- ✅ Added volume mount for zenoh-config.json5
-- ✅ Updated Docker command to use zenohd with config file
+- ✅ Added step to download remote-api plugin v1.6.2 (x86_64-unknown-linux-musl)
+- ✅ Added volume mount for zenoh_plugins directory to `/root/.zenoh`
+- ✅ Pinned Docker image to `eclipse/zenoh:1.6.2`
+- ✅ Updated to use command-line configuration: `--cfg='plugins/remote_api/websocket_port:10000'`
 - ✅ Increased startup wait time from 5s to 15s (plugin loading takes time)
 - ✅ Added router verification step
 - ✅ Enhanced debugging output for failures
 - ✅ Added WebSocket connectivity testing via REST API
 
-### 3. `test/start-zenoh-router.sh` (NEW)
+### 2. `test/start-zenoh-router.sh` (NEW)
 - ✅ Helper script for starting Zenoh router locally
-- ✅ Automatically mounts configuration file
+- ✅ Automatically downloads remote-api plugin if not present
+- ✅ Uses correct x86_64-unknown-linux-musl binary for Docker
+- ✅ Mounts zenoh_plugins directory as volume
 - ✅ Verifies router startup
 - ✅ Provides clear status and endpoint information
 - ✅ Handles cleanup of existing containers
 
-### 4. `test/README.md`
+### 3. `test/README.md`
 - ✅ Updated to explain remote-api plugin requirement
+- ✅ Documented that plugin must be x86_64-unknown-linux-musl for Docker
 - ✅ Added helper script as primary setup method
-- ✅ Added 4 different setup options (helper script, Docker manual, zenoh-bridge-remote-api, zenohd+plugin)
+- ✅ Added manual Docker setup with plugin download instructions
 - ✅ Enhanced troubleshooting guide with plugin-specific issues
 - ✅ Added verification commands for checking plugin status
 
+### 4. `.gitignore`
+- ✅ Added `zenoh_plugins/` to ignore downloaded plugin binaries
+
 ### 5. `CI_INVESTIGATION.md` (THIS FILE)
-- ✅ Documented actual root cause (missing remote-api plugin)
-- ✅ Explained zenoh-ts requirements
+- ✅ Documented actual root cause (missing remote-api plugin binary)
+- ✅ Explained zenoh-ts requirements and Docker compatibility
 - ✅ Listed all fixes applied
 
 ---
