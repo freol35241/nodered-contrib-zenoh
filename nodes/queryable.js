@@ -182,20 +182,34 @@ module.exports = function(RED) {
         this.on('close', async function(done) {
             node.polling = false;
 
+            // Check if session is still open before attempting cleanup
+            const session = node.sessionConfig?.session;
+            const sessionOpen = session && !session.isClosed();
+
             for (const [queryId, query] of node.pendingQueries) {
                 try {
-                    await query.finalize();
+                    if (sessionOpen) {
+                        await query.finalize();
+                    }
                 } catch (err) {
-                    node.error('Error finalizing query: ' + err.message);
+                    // Ignore errors if session is already closed during redeployment
+                    if (!err.message.includes('timeout') && !err.message.includes('disconnected')) {
+                        node.error('Error finalizing query: ' + err.message);
+                    }
                 }
             }
             node.pendingQueries.clear();
 
             if (node.queryable) {
                 try {
-                    await node.queryable.undeclare();
+                    if (sessionOpen) {
+                        await node.queryable.undeclare();
+                    }
                 } catch (err) {
-                    node.error('Error undeclaring queryable: ' + err.message);
+                    // Ignore errors if session is already closed during redeployment
+                    if (!err.message.includes('timeout') && !err.message.includes('disconnected')) {
+                        node.error('Error undeclaring queryable: ' + err.message);
+                    }
                 }
             }
             node.status({});

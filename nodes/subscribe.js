@@ -84,9 +84,16 @@ module.exports = function(RED) {
             node.polling = false;
             if (node.subscriber) {
                 try {
-                    await node.subscriber.undeclare();
+                    // Check if session is still open before undeclaring
+                    const session = node.sessionConfig?.session;
+                    if (session && !session.isClosed()) {
+                        await node.subscriber.undeclare();
+                    }
                 } catch (err) {
-                    node.error('Error undeclaring subscriber: ' + err.message);
+                    // Ignore errors if session is already closed during redeployment
+                    if (!err.message.includes('timeout') && !err.message.includes('disconnected')) {
+                        node.error('Error undeclaring subscriber: ' + err.message);
+                    }
                 }
             }
             node.status({});
