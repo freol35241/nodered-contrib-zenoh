@@ -30,7 +30,24 @@ module.exports = function(RED) {
                 const options = {};
 
                 if (msg.payload !== undefined && msg.payload !== null) {
-                    options.payload = msg.payload;
+                    // Convert payload to Buffer (raw bytes) for Zenoh transport
+                    let buffer;
+                    if (Buffer.isBuffer(msg.payload)) {
+                        buffer = msg.payload;
+                    } else if (typeof msg.payload === 'string') {
+                        buffer = Buffer.from(msg.payload, 'utf8');
+                    } else if (typeof msg.payload === 'number' || typeof msg.payload === 'boolean') {
+                        buffer = Buffer.from(String(msg.payload), 'utf8');
+                    } else if (msg.payload instanceof Uint8Array) {
+                        buffer = Buffer.from(msg.payload);
+                    } else if (typeof msg.payload === 'object') {
+                        buffer = Buffer.from(JSON.stringify(msg.payload), 'utf8');
+                    } else {
+                        buffer = Buffer.from(String(msg.payload), 'utf8');
+                    }
+
+                    const { ZBytes } = await import('zenoh');
+                    options.payload = new ZBytes(buffer);
                 }
                 if (msg.encoding) {
                     options.encoding = msg.encoding;
@@ -89,8 +106,13 @@ module.exports = function(RED) {
                         const result = reply.result();
 
                         if (result.constructor.name === 'Sample') {
+                            // Extract payload as raw bytes (Buffer)
+                            const zbytes = result.payload();
+                            const bytes = zbytes.toBytes();
+                            const payload = Buffer.from(bytes);
+
                             const replyMsg = {
-                                payload: result.payload(),
+                                payload: payload,
                                 topic: result.keyexpr().toString(),
                                 zenoh: {
                                     keyExpr: result.keyexpr().toString(),
@@ -108,8 +130,13 @@ module.exports = function(RED) {
 
                             replies.push(replyMsg);
                         } else {
+                            // Extract error payload as raw bytes (Buffer)
+                            const zbytes = result.payload();
+                            const bytes = zbytes.toBytes();
+                            const payload = Buffer.from(bytes);
+
                             const errorMsg = {
-                                payload: result.payload(),
+                                payload: payload,
                                 error: true,
                                 zenoh: {
                                     encoding: result.encoding().toString(),

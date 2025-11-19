@@ -50,8 +50,16 @@ module.exports = function(RED) {
                         const queryId = Math.random().toString(36).substring(7);
                         node.pendingQueries.set(queryId, query);
 
+                        // Extract query payload as raw bytes (Buffer)
+                        let payload = null;
+                        const queryPayload = query.payload();
+                        if (queryPayload) {
+                            const bytes = queryPayload.toBytes();
+                            payload = Buffer.from(bytes);
+                        }
+
                         const msg = {
-                            payload: query.payload(),
+                            payload: payload,
                             topic: query.keyExpr().toString(),
                             queryId: queryId,
                             zenoh: {
@@ -101,11 +109,29 @@ module.exports = function(RED) {
                     await query.finalize();
                     node.pendingQueries.delete(queryId);
                 } else if (msg.error) {
+                    // Convert error payload to Buffer (raw bytes)
+                    let buffer;
+                    const errorPayload = msg.payload || 'Error';
+                    if (Buffer.isBuffer(errorPayload)) {
+                        buffer = errorPayload;
+                    } else if (typeof errorPayload === 'string') {
+                        buffer = Buffer.from(errorPayload, 'utf8');
+                    } else if (typeof errorPayload === 'number' || typeof errorPayload === 'boolean') {
+                        buffer = Buffer.from(String(errorPayload), 'utf8');
+                    } else if (errorPayload instanceof Uint8Array) {
+                        buffer = Buffer.from(errorPayload);
+                    } else if (typeof errorPayload === 'object') {
+                        buffer = Buffer.from(JSON.stringify(errorPayload), 'utf8');
+                    } else {
+                        buffer = Buffer.from(String(errorPayload), 'utf8');
+                    }
+
+                    const { ZBytes } = await import('zenoh');
                     const options = {};
                     if (msg.encoding) {
                         options.encoding = msg.encoding;
                     }
-                    await query.replyErr(msg.payload || 'Error', options);
+                    await query.replyErr(new ZBytes(buffer), options);
                 } else {
                     const keyExpr = msg.keyExpr || msg.topic;
                     if (!keyExpr) {
@@ -119,6 +145,23 @@ module.exports = function(RED) {
                         return;
                     }
 
+                    // Convert reply payload to Buffer (raw bytes)
+                    let buffer;
+                    if (Buffer.isBuffer(payload)) {
+                        buffer = payload;
+                    } else if (typeof payload === 'string') {
+                        buffer = Buffer.from(payload, 'utf8');
+                    } else if (typeof payload === 'number' || typeof payload === 'boolean') {
+                        buffer = Buffer.from(String(payload), 'utf8');
+                    } else if (payload instanceof Uint8Array) {
+                        buffer = Buffer.from(payload);
+                    } else if (typeof payload === 'object') {
+                        buffer = Buffer.from(JSON.stringify(payload), 'utf8');
+                    } else {
+                        buffer = Buffer.from(String(payload), 'utf8');
+                    }
+
+                    const { ZBytes } = await import('zenoh');
                     const options = {};
                     if (msg.encoding) {
                         options.encoding = msg.encoding;
@@ -127,7 +170,7 @@ module.exports = function(RED) {
                         options.attachment = msg.attachment;
                     }
 
-                    await query.reply(keyExpr, payload, options);
+                    await query.reply(keyExpr, new ZBytes(buffer), options);
                 }
 
                 done();
