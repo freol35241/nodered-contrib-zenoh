@@ -268,6 +268,171 @@ Responds to Zenoh queries on a key expression.
 }
 ```
 
+## Payload Handling
+
+All Zenoh nodes use **raw bytes (Buffer)** for payload transport. This provides a predictable, transparent approach that aligns with Zenoh's fundamentally binary protocol.
+
+### How It Works
+
+**Sending (zenoh-put):**
+- All payload types are automatically converted to Buffer (raw bytes) before transmission
+- The conversion preserves data integrity while ensuring compatibility with Zenoh's binary transport
+
+**Receiving (zenoh-subscribe, zenoh-query, zenoh-queryable):**
+- Payloads are always received as Node.js Buffer objects
+- The Node-RED debug window displays Buffers showing both hex and ASCII interpretation
+- Use standard Node-RED nodes to convert Buffers to your desired format
+
+### Common Scenarios
+
+#### Sending and Receiving Strings
+
+**Flow:**
+```
+[inject: "hello"] → [zenoh-put] → Zenoh → [zenoh-subscribe] → [debug]
+```
+
+**On the receiving side:**
+- Debug shows: `Buffer <68 65 6c 6c 6f>` (with ASCII preview: "hello")
+- To use as string, add a function node:
+
+```javascript
+msg.payload = msg.payload.toString('utf8');
+return msg;
+```
+
+Or use a **change node**: Set `msg.payload` to `expression`: `$string(msg.payload)`
+
+#### Sending and Receiving JSON
+
+**Flow:**
+```
+[inject: {temp: 20, unit: "C"}] → [zenoh-put] → Zenoh → [zenoh-subscribe] → [function] → [debug]
+```
+
+**zenoh-put automatically:**
+- Converts objects to JSON string: `{"temp":20,"unit":"C"}`
+- Encodes as UTF-8 bytes
+
+**On the receiving side, use a function node:**
+
+```javascript
+// Convert Buffer to string, then parse JSON
+msg.payload = JSON.parse(msg.payload.toString('utf8'));
+// Now msg.payload is {temp: 20, unit: "C"}
+return msg;
+```
+
+Or chain nodes:
+```
+[zenoh-subscribe] → [buffer-to-string] → [JSON parse] → [debug]
+```
+
+#### Sending and Receiving Numbers
+
+**Sending:**
+```
+[inject: 42] → [zenoh-put]
+```
+- Number is converted to string "42", then to UTF-8 bytes
+
+**Receiving:**
+```javascript
+// In a function node after zenoh-subscribe
+msg.payload = Number(msg.payload.toString('utf8'));
+return msg;
+```
+
+Or use a **change node**: Set `msg.payload` to `expression`: `$number($string(msg.payload))`
+
+#### Sending and Receiving Binary Data
+
+**Sending binary data directly:**
+```javascript
+// In a function node before zenoh-put
+msg.payload = Buffer.from([0x01, 0x02, 0x03, 0x04]);
+return msg;
+```
+
+**Receiving:**
+- The Buffer is already in binary form, use directly or process bytes
+
+**Encoding sensor data example:**
+```javascript
+// Sending: Pack temperature (float) and humidity (int)
+const buffer = Buffer.allocUnsafe(8);
+buffer.writeFloatLE(23.5, 0);  // Temperature at offset 0
+buffer.writeInt32LE(65, 4);     // Humidity at offset 4
+msg.payload = buffer;
+return msg;
+```
+
+```javascript
+// Receiving: Unpack the data
+const temp = msg.payload.readFloatLE(0);
+const humidity = msg.payload.readInt32LE(4);
+msg.payload = { temperature: temp, humidity: humidity };
+return msg;
+```
+
+#### Working with Typed Arrays
+
+**Sending:**
+```javascript
+// In a function node
+const data = new Uint8Array([10, 20, 30, 40, 50]);
+msg.payload = Buffer.from(data);
+return msg;
+```
+
+**Receiving:**
+```javascript
+// Convert Buffer back to Uint8Array if needed
+const typedArray = new Uint8Array(msg.payload);
+msg.payload = Array.from(typedArray); // [10, 20, 30, 40, 50]
+return msg;
+```
+
+### Best Practices
+
+1. **Use encoding hints**: Set `msg.encoding` when sending to help receivers:
+   ```javascript
+   msg.encoding = "application/json";  // For JSON data
+   msg.encoding = "text/plain";        // For plain text
+   msg.encoding = "application/octet-stream";  // For binary data
+   ```
+
+2. **Create reusable conversion flows**: Build subflows for common conversions:
+   - Buffer → JSON Object
+   - Buffer → String
+   - Number → Buffer
+   - JSON Object → Buffer
+
+3. **Check the debug window**: When troubleshooting, the debug window shows both:
+   - Hex representation: `<48 65 6c 6c 6f>`
+   - ASCII interpretation: `"Hello"` (when printable)
+
+4. **Handle errors gracefully**: Always wrap JSON parsing in try-catch:
+   ```javascript
+   try {
+       msg.payload = JSON.parse(msg.payload.toString('utf8'));
+   } catch (e) {
+       node.error("Invalid JSON: " + e.message);
+       return null;
+   }
+   return msg;
+   ```
+
+### Why Raw Bytes?
+
+This approach provides several advantages:
+
+- **Transparency**: No hidden conversions or magic—you always know you're working with bytes
+- **Flexibility**: Use Node-RED's rich ecosystem of conversion nodes
+- **Compatibility**: Works naturally with Zenoh's binary protocol
+- **Performance**: No unnecessary serialization/deserialization overhead
+- **Debuggability**: Node-RED's debug window shows Buffer contents clearly
+
 ## Usage Examples
 
 ### Simple Pub/Sub

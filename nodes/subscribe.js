@@ -42,8 +42,14 @@ module.exports = function(RED) {
                 try {
                     const sample = await receiver.receive();
                     if (sample) {
+                        // Extract payload as raw bytes (Buffer)
+                        // ZBytes.toBytes() returns Uint8Array, convert to Buffer for Node-RED
+                        const zbytes = sample.payload();
+                        const bytes = zbytes.toBytes();
+                        const payload = Buffer.from(bytes);
+
                         const msg = {
-                            payload: sample.payload(),
+                            payload: payload,
                             topic: sample.keyexpr().toString(),
                             zenoh: {
                                 keyExpr: sample.keyexpr().toString(),

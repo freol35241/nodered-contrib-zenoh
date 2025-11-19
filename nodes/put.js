@@ -30,6 +30,29 @@ module.exports = function(RED) {
                     return;
                 }
 
+                // Convert payload to Buffer (raw bytes) for Zenoh transport
+                // This ensures predictable binary transport regardless of input type
+                let buffer;
+                if (Buffer.isBuffer(payload)) {
+                    // Already a buffer, use as-is
+                    buffer = payload;
+                } else if (typeof payload === 'string') {
+                    // String to UTF-8 bytes
+                    buffer = Buffer.from(payload, 'utf8');
+                } else if (typeof payload === 'number' || typeof payload === 'boolean') {
+                    // Convert primitives to string then to bytes
+                    buffer = Buffer.from(String(payload), 'utf8');
+                } else if (payload instanceof Uint8Array) {
+                    // Typed array to Buffer
+                    buffer = Buffer.from(payload);
+                } else if (typeof payload === 'object') {
+                    // Objects/arrays to JSON string to bytes
+                    buffer = Buffer.from(JSON.stringify(payload), 'utf8');
+                } else {
+                    // Fallback: convert to string then to bytes
+                    buffer = Buffer.from(String(payload), 'utf8');
+                }
+
                 const options = {};
 
                 if (msg.encoding) {
@@ -57,7 +80,11 @@ module.exports = function(RED) {
                     options.timestamp = msg.timestamp;
                 }
 
-                await session.put(keyExpr, payload, options);
+                // Import zenoh to access ZBytes constructor
+                const { ZBytes } = await import('zenoh');
+
+                // Wrap buffer in ZBytes and send
+                await session.put(keyExpr, new ZBytes(buffer), options);
 
                 node.status({ fill: 'green', shape: 'dot', text: 'sent' });
                 setTimeout(() => { node.status({}); }, 1000);
