@@ -4,9 +4,17 @@ module.exports = function(RED) {
         const node = this;
 
         this.selector = config.selector;
-        this.timeout = config.timeout || 10000;
+        this.timeout = (typeof config.timeout === 'number' && !isNaN(config.timeout))
+            ? config.timeout
+            : (parseInt(config.timeout) || 10000);
         this.target = config.target;
         this.consolidation = config.consolidation;
+        this.encoding = config.encoding;
+        this.priority = config.priority;
+        this.congestionControl = config.congestionControl;
+        this.express = config.express;
+        this.allowedDestination = config.allowedDestination;
+        this.acceptReplies = config.acceptReplies;
         this.sessionConfig = RED.nodes.getNode(config.session);
 
         if (!this.sessionConfig) {
@@ -49,39 +57,73 @@ module.exports = function(RED) {
                     // Pass buffer directly - zenoh-ts handles ZBytes conversion internally
                     options.payload = buffer;
                 }
-                if (msg.encoding) {
+                // Apply encoding: msg overrides config
+                if (msg.encoding !== undefined) {
                     options.encoding = msg.encoding;
+                } else if (node.encoding !== undefined && node.encoding !== '') {
+                    options.encoding = node.encoding;
                 }
+
+                // Apply timeout: msg overrides config
                 if (msg.timeout !== undefined) {
-                    options.timeout = { secs: 0, nanos: msg.timeout * 1000000 };
+                    const timeoutMs = (typeof msg.timeout === 'number' && !isNaN(msg.timeout))
+                        ? msg.timeout
+                        : parseInt(msg.timeout) || 10000;
+                    options.timeout = { secs: 0, nanos: timeoutMs * 1000000 };
                 } else if (node.timeout) {
                     options.timeout = { secs: 0, nanos: node.timeout * 1000000 };
                 }
+
+                // Apply target: msg overrides config
                 if (msg.target !== undefined) {
                     options.target = msg.target;
                 } else if (node.target !== undefined && node.target !== '') {
                     options.target = parseInt(node.target);
                 }
+
+                // Apply consolidation: msg overrides config
                 if (msg.consolidation !== undefined) {
                     options.consolidation = msg.consolidation;
                 } else if (node.consolidation !== undefined && node.consolidation !== '') {
                     options.consolidation = parseInt(node.consolidation);
                 }
-                if (msg.congestionControl !== undefined) {
-                    options.congestionControl = msg.congestionControl;
-                }
-                if (msg.priority !== undefined) {
-                    options.priority = msg.priority;
-                }
-                if (msg.express !== undefined) {
-                    options.express = msg.express;
-                }
-                if (msg.allowedDestination !== undefined) {
-                    options.allowedDestination = msg.allowedDestination;
-                }
+
+                // Apply acceptReplies: msg overrides config
                 if (msg.acceptReplies !== undefined) {
                     options.acceptReplies = msg.acceptReplies;
+                } else if (node.acceptReplies !== undefined && node.acceptReplies !== '') {
+                    options.acceptReplies = parseInt(node.acceptReplies);
                 }
+
+                // Apply priority: msg overrides config
+                if (msg.priority !== undefined) {
+                    options.priority = msg.priority;
+                } else if (node.priority !== undefined && node.priority !== '') {
+                    options.priority = parseInt(node.priority);
+                }
+
+                // Apply congestionControl: msg overrides config
+                if (msg.congestionControl !== undefined) {
+                    options.congestionControl = msg.congestionControl;
+                } else if (node.congestionControl !== undefined && node.congestionControl !== '') {
+                    options.congestionControl = parseInt(node.congestionControl);
+                }
+
+                // Apply express: msg overrides config
+                if (msg.express !== undefined) {
+                    options.express = msg.express;
+                } else if (node.express !== undefined && node.express === true) {
+                    options.express = node.express;
+                }
+
+                // Apply allowedDestination: msg overrides config
+                if (msg.allowedDestination !== undefined) {
+                    options.allowedDestination = msg.allowedDestination;
+                } else if (node.allowedDestination !== undefined && node.allowedDestination !== '') {
+                    options.allowedDestination = parseInt(node.allowedDestination);
+                }
+
+                // These are always dynamic (no config defaults)
                 if (msg.attachment !== undefined) {
                     options.attachment = msg.attachment;
                 }

@@ -4,6 +4,12 @@ module.exports = function(RED) {
         const node = this;
 
         this.keyExpr = config.keyExpr;
+        this.encoding = config.encoding;
+        this.priority = config.priority;
+        this.congestionControl = config.congestionControl;
+        this.express = config.express;
+        this.reliability = config.reliability;
+        this.allowedDestination = config.allowedDestination;
         this.sessionConfig = RED.nodes.getNode(config.session);
 
         if (!this.sessionConfig) {
@@ -55,24 +61,49 @@ module.exports = function(RED) {
 
                 const options = {};
 
-                if (msg.encoding) {
+                // Apply encoding: msg overrides config
+                if (msg.encoding !== undefined) {
                     options.encoding = msg.encoding;
+                } else if (node.encoding !== undefined && node.encoding !== '') {
+                    options.encoding = node.encoding;
                 }
+
+                // Apply priority: msg overrides config
                 if (msg.priority !== undefined) {
                     options.priority = msg.priority;
+                } else if (node.priority !== undefined && node.priority !== '') {
+                    options.priority = parseInt(node.priority);
                 }
+
+                // Apply congestionControl: msg overrides config
                 if (msg.congestionControl !== undefined) {
                     options.congestionControl = msg.congestionControl;
+                } else if (node.congestionControl !== undefined && node.congestionControl !== '') {
+                    options.congestionControl = parseInt(node.congestionControl);
                 }
+
+                // Apply express: msg overrides config
                 if (msg.express !== undefined) {
                     options.express = msg.express;
+                } else if (node.express !== undefined && node.express === true) {
+                    options.express = node.express;
                 }
+
+                // Apply reliability: msg overrides config
                 if (msg.reliability !== undefined) {
                     options.reliability = msg.reliability;
+                } else if (node.reliability !== undefined && node.reliability !== '') {
+                    options.reliability = parseInt(node.reliability);
                 }
+
+                // Apply allowedDestination: msg overrides config
                 if (msg.allowedDestination !== undefined) {
                     options.allowedDestination = msg.allowedDestination;
+                } else if (node.allowedDestination !== undefined && node.allowedDestination !== '') {
+                    options.allowedDestination = parseInt(node.allowedDestination);
                 }
+
+                // These are always dynamic (no config defaults)
                 if (msg.attachment !== undefined) {
                     options.attachment = msg.attachment;
                 }

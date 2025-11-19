@@ -5,7 +5,13 @@
         defaults: {
             name: { value: '' },
             session: { value: '', type: 'zenoh-session', required: true },
-            keyExpr: { value: '' }
+            keyExpr: { value: '' },
+            encoding: { value: '' },
+            priority: { value: '' },
+            congestionControl: { value: '' },
+            express: { value: false },
+            reliability: { value: '' },
+            allowedDestination: { value: '' }
         },
         inputs: 1,
         outputs: 0,
@@ -25,6 +31,60 @@
         <label for="node-input-keyExpr"><i class="fa fa-tag"></i> Key Expression</label>
         <input type="text" id="node-input-keyExpr" placeholder="demo/example/key">
     </div>
+
+    <div class="form-row">
+        <label for="node-input-encoding"><i class="fa fa-file-code-o"></i> Encoding</label>
+        <input type="text" id="node-input-encoding" placeholder="e.g., text/plain, application/json">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-priority"><i class="fa fa-exclamation-circle"></i> Priority</label>
+        <select id="node-input-priority">
+            <option value="">Default</option>
+            <option value="1">Real Time (1)</option>
+            <option value="2">Interactive High (2)</option>
+            <option value="3">Interactive Low (3)</option>
+            <option value="4">Data High (4)</option>
+            <option value="5">Data (5)</option>
+            <option value="6">Data Low (6)</option>
+            <option value="7">Background (7)</option>
+        </select>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-congestionControl"><i class="fa fa-traffic-light"></i> Congestion Control</label>
+        <select id="node-input-congestionControl">
+            <option value="">Default</option>
+            <option value="0">Drop (0)</option>
+            <option value="1">Block (1)</option>
+        </select>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-reliability"><i class="fa fa-shield"></i> Reliability</label>
+        <select id="node-input-reliability">
+            <option value="">Default</option>
+            <option value="0">Best Effort (0)</option>
+            <option value="1">Reliable (1)</option>
+        </select>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-express"><i class="fa fa-bolt"></i> Express</label>
+        <input type="checkbox" id="node-input-express" style="display:inline-block; width:auto; vertical-align:baseline;">
+        <label for="node-input-express" style="width:auto; margin-left:5px;">Enable express mode (better latency, lower throughput)</label>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-allowedDestination"><i class="fa fa-globe"></i> Allowed Destination</label>
+        <select id="node-input-allowedDestination">
+            <option value="">Default</option>
+            <option value="0">Session Local (0)</option>
+            <option value="1">Remote (1)</option>
+            <option value="2">Any (2)</option>
+        </select>
+    </div>
+
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Name">
@@ -46,22 +106,22 @@
         <dd>Alternative to keyExpr. The key expression to publish to.</dd>
 
         <dt class="optional">encoding <span class="property-type">string | object</span></dt>
-        <dd>The encoding type for the payload (e.g., "application/json", "text/plain").</dd>
+        <dd>The encoding type for the payload. Overrides configured encoding.</dd>
 
         <dt class="optional">priority <span class="property-type">number</span></dt>
-        <dd>Message priority (1-7): REAL_TIME=1, INTERACTIVE_HIGH=2, INTERACTIVE_LOW=3, DATA_HIGH=4, DATA=5, DATA_LOW=6, BACKGROUND=7.</dd>
+        <dd>Message priority (1-7). Overrides configured priority.</dd>
 
         <dt class="optional">congestionControl <span class="property-type">number</span></dt>
-        <dd>Congestion control: DROP=0, BLOCK=1.</dd>
+        <dd>Congestion control (0=Drop, 1=Block). Overrides configured value.</dd>
 
         <dt class="optional">express <span class="property-type">boolean</span></dt>
-        <dd>If true, message will not be batched (better latency, lower throughput).</dd>
+        <dd>Express mode flag. Overrides configured value.</dd>
 
         <dt class="optional">reliability <span class="property-type">number</span></dt>
-        <dd>Reliability: BEST_EFFORT=0, RELIABLE=1.</dd>
+        <dd>Reliability (0=Best Effort, 1=Reliable). Overrides configured value.</dd>
 
         <dt class="optional">allowedDestination <span class="property-type">number</span></dt>
-        <dd>Allowed destination locality: SESSION_LOCAL=0, REMOTE=1, ANY=2.</dd>
+        <dd>Allowed destination locality (0=Session Local, 1=Remote, 2=Any). Overrides configured value.</dd>
 
         <dt class="optional">attachment <span class="property-type">any</span></dt>
         <dd>Additional data to send with the payload.</dd>
@@ -73,5 +133,17 @@
     <h3>Details</h3>
     <p>Publishes data to the specified key expression. The key expression can be set in the configuration
     or provided via <code>msg.keyExpr</code> or <code>msg.topic</code>.</p>
-    <p>Additional options like encoding, priority, and attachment can be set via message properties.</p>
+
+    <h4>Quality of Service</h4>
+    <p>Configure default QoS parameters in the node settings. All settings can be overridden by message properties:</p>
+    <ul>
+        <li><b>Encoding</b> - Payload encoding type (e.g., "text/plain", "application/json")</li>
+        <li><b>Priority</b> - Message priority from 1 (Real Time) to 7 (Background)</li>
+        <li><b>Congestion Control</b> - How to handle network congestion (Drop or Block)</li>
+        <li><b>Reliability</b> - Best Effort for lower latency or Reliable for guaranteed delivery</li>
+        <li><b>Express</b> - Bypass batching for lower latency at the cost of throughput</li>
+        <li><b>Allowed Destination</b> - Restrict message delivery to local session, remote, or any</li>
+    </ul>
+    <p>When a configuration field is empty or set to "Default", the Zenoh library default will be used.</p>
+    <p>Message properties (when defined) always override node configuration.</p>
 </script>
