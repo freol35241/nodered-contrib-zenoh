@@ -4,7 +4,9 @@ module.exports = function(RED) {
         const node = this;
 
         this.selector = config.selector;
-        this.timeout = config.timeout || 10000;
+        this.timeout = (typeof config.timeout === 'number' && !isNaN(config.timeout))
+            ? config.timeout
+            : (parseInt(config.timeout) || 10000);
         this.target = config.target;
         this.consolidation = config.consolidation;
         this.sessionConfig = RED.nodes.getNode(config.session);
@@ -53,7 +55,10 @@ module.exports = function(RED) {
                     options.encoding = msg.encoding;
                 }
                 if (msg.timeout !== undefined) {
-                    options.timeout = { secs: 0, nanos: msg.timeout * 1000000 };
+                    const timeoutMs = (typeof msg.timeout === 'number' && !isNaN(msg.timeout))
+                        ? msg.timeout
+                        : parseInt(msg.timeout) || 10000;
+                    options.timeout = { secs: 0, nanos: timeoutMs * 1000000 };
                 } else if (node.timeout) {
                     options.timeout = { secs: 0, nanos: node.timeout * 1000000 };
                 }
