@@ -47,8 +47,14 @@ module.exports = function(RED) {
                 if (msg.reliability !== undefined) {
                     options.reliability = msg.reliability;
                 }
+                if (msg.allowedDestination !== undefined) {
+                    options.allowedDestination = msg.allowedDestination;
+                }
                 if (msg.attachment !== undefined) {
                     options.attachment = msg.attachment;
+                }
+                if (msg.timestamp !== undefined) {
+                    options.timestamp = msg.timestamp;
                 }
 
                 await session.put(keyExpr, payload, options);

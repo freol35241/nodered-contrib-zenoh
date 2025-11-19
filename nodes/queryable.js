@@ -4,6 +4,8 @@ module.exports = function(RED) {
         const node = this;
 
         this.keyExpr = config.keyExpr;
+        this.complete = config.complete;
+        this.allowedOrigin = config.allowedOrigin;
         this.sessionConfig = RED.nodes.getNode(config.session);
         this.queryable = null;
         this.polling = false;
@@ -18,7 +20,15 @@ module.exports = function(RED) {
             try {
                 const session = await node.sessionConfig.getSession();
 
-                node.queryable = await session.declareQueryable(node.keyExpr);
+                const options = {};
+                if (node.complete !== undefined) {
+                    options.complete = node.complete;
+                }
+                if (node.allowedOrigin !== undefined && node.allowedOrigin !== '') {
+                    options.allowedOrigin = parseInt(node.allowedOrigin);
+                }
+
+                node.queryable = await session.declareQueryable(node.keyExpr, options);
                 node.status({ fill: 'green', shape: 'dot', text: 'ready' });
 
                 const receiver = node.queryable.receiver();
@@ -41,7 +51,7 @@ module.exports = function(RED) {
                         node.pendingQueries.set(queryId, query);
 
                         const msg = {
-                            payload: query.payload()?.deserialize(),
+                            payload: query.payload(),
                             topic: query.keyExpr().toString(),
                             queryId: queryId,
                             zenoh: {
@@ -54,7 +64,7 @@ module.exports = function(RED) {
 
                         const attachment = query.attachment();
                         if (attachment) {
-                            msg.zenoh.attachment = attachment.deserialize();
+                            msg.zenoh.attachment = attachment;
                         }
 
                         node.send([msg, null]);

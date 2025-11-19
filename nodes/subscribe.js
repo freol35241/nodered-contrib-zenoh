@@ -4,6 +4,7 @@ module.exports = function(RED) {
         const node = this;
 
         this.keyExpr = config.keyExpr;
+        this.allowedOrigin = config.allowedOrigin;
         this.sessionConfig = RED.nodes.getNode(config.session);
         this.subscriber = null;
         this.polling = false;
@@ -17,7 +18,12 @@ module.exports = function(RED) {
             try {
                 const session = await node.sessionConfig.getSession();
 
-                node.subscriber = await session.declareSubscriber(node.keyExpr);
+                const options = {};
+                if (node.allowedOrigin !== undefined && node.allowedOrigin !== '') {
+                    options.allowedOrigin = parseInt(node.allowedOrigin);
+                }
+
+                node.subscriber = await session.declareSubscriber(node.keyExpr, options);
                 node.status({ fill: 'green', shape: 'dot', text: 'subscribed' });
 
                 const receiver = node.subscriber.receiver();
@@ -37,7 +43,7 @@ module.exports = function(RED) {
                     const sample = await receiver.receive();
                     if (sample) {
                         const msg = {
-                            payload: sample.payload().deserialize(),
+                            payload: sample.payload(),
                             topic: sample.keyexpr().toString(),
                             zenoh: {
                                 keyExpr: sample.keyexpr().toString(),
@@ -52,7 +58,7 @@ module.exports = function(RED) {
 
                         const attachment = sample.attachment();
                         if (attachment) {
-                            msg.zenoh.attachment = attachment.deserialize();
+                            msg.zenoh.attachment = attachment;
                         }
 
                         node.send(msg);
