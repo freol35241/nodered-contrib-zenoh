@@ -8,7 +8,13 @@
             selector: { value: '' },
             timeout: { value: 10000, validate: RED.validators.number() },
             target: { value: '' },
-            consolidation: { value: '' }
+            consolidation: { value: '' },
+            encoding: { value: '' },
+            priority: { value: '' },
+            congestionControl: { value: '' },
+            express: { value: false },
+            allowedDestination: { value: '' },
+            acceptReplies: { value: '' }
         },
         inputs: 1,
         outputs: 1,
@@ -51,6 +57,60 @@
             <option value="3">Latest</option>
         </select>
     </div>
+
+    <div class="form-row">
+        <label for="node-input-acceptReplies"><i class="fa fa-filter"></i> Accept Replies</label>
+        <select id="node-input-acceptReplies">
+            <option value="">Default</option>
+            <option value="0">Any (0)</option>
+            <option value="1">Matching Query (1)</option>
+        </select>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-encoding"><i class="fa fa-file-code-o"></i> Encoding</label>
+        <input type="text" id="node-input-encoding" placeholder="e.g., text/plain, application/json">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-priority"><i class="fa fa-exclamation-circle"></i> Priority</label>
+        <select id="node-input-priority">
+            <option value="">Default</option>
+            <option value="1">Real Time (1)</option>
+            <option value="2">Interactive High (2)</option>
+            <option value="3">Interactive Low (3)</option>
+            <option value="4">Data High (4)</option>
+            <option value="5">Data (5)</option>
+            <option value="6">Data Low (6)</option>
+            <option value="7">Background (7)</option>
+        </select>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-congestionControl"><i class="fa fa-traffic-light"></i> Congestion Control</label>
+        <select id="node-input-congestionControl">
+            <option value="">Default</option>
+            <option value="0">Drop (0)</option>
+            <option value="1">Block (1)</option>
+        </select>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-express"><i class="fa fa-bolt"></i> Express</label>
+        <input type="checkbox" id="node-input-express" style="display:inline-block; width:auto; vertical-align:baseline;">
+        <label for="node-input-express" style="width:auto; margin-left:5px;">Enable express mode (better latency, lower throughput)</label>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-allowedDestination"><i class="fa fa-globe"></i> Allowed Destination</label>
+        <select id="node-input-allowedDestination">
+            <option value="">Default</option>
+            <option value="0">Session Local (0)</option>
+            <option value="1">Remote (1)</option>
+            <option value="2">Any (2)</option>
+        </select>
+    </div>
+
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Name">
@@ -72,31 +132,31 @@
         <dd>Optional payload to send with the query.</dd>
 
         <dt class="optional">encoding <span class="property-type">string</span></dt>
-        <dd>The encoding type for the query payload.</dd>
+        <dd>The encoding type for the query payload. Overrides configured encoding.</dd>
 
         <dt class="optional">timeout <span class="property-type">number</span></dt>
         <dd>Timeout in milliseconds for the query. Overrides configured timeout.</dd>
 
         <dt class="optional">target <span class="property-type">number</span></dt>
-        <dd>Query target: BEST_MATCHING=0, ALL=1, ALL_COMPLETE=2. Overrides configured target.</dd>
+        <dd>Query target (0-2). Overrides configured target.</dd>
 
         <dt class="optional">consolidation <span class="property-type">number</span></dt>
-        <dd>Consolidation mode: AUTO=0, NONE=1, MONOTONIC=2, LATEST=3. Overrides configured consolidation.</dd>
-
-        <dt class="optional">congestionControl <span class="property-type">number</span></dt>
-        <dd>Congestion control: DROP=0, BLOCK=1.</dd>
-
-        <dt class="optional">priority <span class="property-type">number</span></dt>
-        <dd>Query priority (1-7): REAL_TIME=1, INTERACTIVE_HIGH=2, INTERACTIVE_LOW=3, DATA_HIGH=4, DATA=5, DATA_LOW=6, BACKGROUND=7.</dd>
-
-        <dt class="optional">express <span class="property-type">boolean</span></dt>
-        <dd>If true, query will not be batched (better latency, lower throughput).</dd>
-
-        <dt class="optional">allowedDestination <span class="property-type">number</span></dt>
-        <dd>Allowed destination locality: SESSION_LOCAL=0, REMOTE=1, ANY=2.</dd>
+        <dd>Consolidation mode (0-3). Overrides configured consolidation.</dd>
 
         <dt class="optional">acceptReplies <span class="property-type">number</span></dt>
-        <dd>Reply key expression filter: ANY=0, MATCHING_QUERY=1.</dd>
+        <dd>Reply filter (0=Any, 1=Matching Query). Overrides configured value.</dd>
+
+        <dt class="optional">priority <span class="property-type">number</span></dt>
+        <dd>Query priority (1-7). Overrides configured priority.</dd>
+
+        <dt class="optional">congestionControl <span class="property-type">number</span></dt>
+        <dd>Congestion control (0=Drop, 1=Block). Overrides configured value.</dd>
+
+        <dt class="optional">express <span class="property-type">boolean</span></dt>
+        <dd>Express mode flag. Overrides configured value.</dd>
+
+        <dt class="optional">allowedDestination <span class="property-type">number</span></dt>
+        <dd>Allowed destination locality (0-2). Overrides configured value.</dd>
 
         <dt class="optional">attachment <span class="property-type">any</span></dt>
         <dd>Additional data to send with the query.</dd>
@@ -112,6 +172,8 @@
     <p>Issues a query to Zenoh queryables matching the selector and collects all replies.</p>
     <p>The selector can include parameters: <code>demo/example/**?arg1=value1;arg2=value2</code></p>
     <p>Replies are collected until the timeout expires or all queryables have responded.</p>
+
+    <h4>Query Behavior</h4>
     <p><b>Target</b> determines which queryables receive the query:</p>
     <ul>
         <li><b>Best Matching (0)</b> - Query the best matching queryable (default)</li>
@@ -125,4 +187,21 @@
         <li><b>Monotonic (2)</b> - Forward samples except if more recent timestamp seen for same key</li>
         <li><b>Latest (3)</b> - Only send samples with highest timestamp for each key</li>
     </ul>
+    <p><b>Accept Replies</b> filters which replies to accept:</p>
+    <ul>
+        <li><b>Any (0)</b> - Accept replies from any key expression</li>
+        <li><b>Matching Query (1)</b> - Only accept replies matching the query selector</li>
+    </ul>
+
+    <h4>Quality of Service</h4>
+    <p>Configure default QoS parameters in the node settings. All settings can be overridden by message properties:</p>
+    <ul>
+        <li><b>Encoding</b> - Payload encoding type for query payload</li>
+        <li><b>Priority</b> - Query priority from 1 (Real Time) to 7 (Background)</li>
+        <li><b>Congestion Control</b> - How to handle network congestion (Drop or Block)</li>
+        <li><b>Express</b> - Bypass batching for lower latency at the cost of throughput</li>
+        <li><b>Allowed Destination</b> - Restrict query delivery to local session, remote, or any</li>
+    </ul>
+    <p>When a configuration field is empty or set to "Default", the Zenoh library default will be used.</p>
+    <p>Message properties (when defined) always override node configuration.</p>
 </script>
