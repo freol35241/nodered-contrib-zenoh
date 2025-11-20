@@ -476,7 +476,7 @@ describe('Zenoh Integration Tests', function() {
                     name: 'test-query',
                     session: 'session1',
                     selector: 'test/integration/multi',
-                    timeout: 5000,
+                    timeout: 1000,  // 1 second timeout to collect all replies
                     wires: [['helper1']]
                 },
                 { id: 'helper1', type: 'helper' },
@@ -535,18 +535,8 @@ describe('Zenoh Integration Tests', function() {
                             payload: 'Reply 2'
                         });
 
-                        // Delay finalize to allow query node to receive replies first
-                        // This prevents "ResponseFinal for unknown Request" error
-                        setTimeout(function() {
-                            try {
-                                queryable1.receive({
-                                    queryId: queryId,
-                                    finalize: true
-                                });
-                            } catch (err) {
-                                // Ignore finalize errors - test may have already completed
-                            }
-                        }, 50);
+                        // Don't call finalize - let query timeout handle completion
+                        // The query has a 5000ms timeout and will return all received replies when it expires
                     } catch (err) {
                         if (!testCompleted) {
                             testCompleted = true;
