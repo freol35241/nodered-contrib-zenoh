@@ -1,0 +1,25 @@
+# Test files
+test/
+*.spec.js
+
+# CI/CD
+.github/
+.gitignore
+
+# Development files
+node_modules/
+package-lock.json
+npm-debug.log
+
+# Temporary files
+*.tmp
+*.log
+.DS_Store
+
+# Documentation that's not needed in package
+*.md
+!README.md
+
+# Build artifacts
+coverage/
+.nyc_output/

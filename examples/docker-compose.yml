@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # Zenoh router with remote-api WebSocket plugin
+  zenoh-router:
+    image: eclipse/zenoh:1.6.2
+    container_name: zenoh-router
+    ports:
+      - "7447:7447"    # Zenoh peer/router communication
+      - "8000:8000"    # REST API
+      - "10000:10000"  # WebSocket (remote-api plugin)
+    command: >
+      --cfg='mode:"router"'
+      --cfg='listen:["tcp/0.0.0.0:7447"]'
+      --cfg='plugins/rest/http_port:"0.0.0.0:8000"'
+      --cfg='plugins/remote_api/websocket_port:"0.0.0.0:10000"'
+    restart: unless-stopped
+    networks:
+      - zenoh-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/@/router/local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Node-RED with Zenoh nodes
+  node-red:
+    image: nodered/node-red:latest
+    container_name: node-red
+    ports:
+      - "1880:1880"  # Node-RED UI
+    environment:
+      # CRITICAL: Enable WASM module support for zenoh-ts
+      - NODE_OPTIONS=--experimental-wasm-modules --no-warnings
+      # Optional: Set timezone
+      - TZ=UTC
+    volumes:
+      # Persist Node-RED data
+      - node-red-data:/data
+    depends_on:
+      zenoh-router:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - zenoh-network
+
+networks:
+  zenoh-network:
+    driver: bridge
+
+volumes:
+  node-red-data:

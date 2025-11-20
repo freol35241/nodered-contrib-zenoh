@@ -1,0 +1,123 @@
+[
+    {
+        "id": "zenoh-example-flow",
+        "type": "tab",
+        "label": "Zenoh Basic Pub/Sub",
+        "disabled": false,
+        "info": "# Zenoh Basic Pub/Sub Example\n\nThis example demonstrates:\n- Publishing messages with zenoh-put\n- Subscribing to messages with zenoh-subscribe\n- Converting Buffer payloads to/from JSON\n\n## Setup\n\n1. Configure the Zenoh Session node with your router address (default: ws://localhost:10000)\n2. Deploy the flow\n3. Click the inject node to publish a message\n4. View the received message in the debug panel\n\n## Notes\n\n- Payloads are transmitted as raw bytes (Buffer)\n- Use function nodes or JSONata to convert between formats"
+    },
+    {
+        "id": "zenoh-session-1",
+        "type": "zenoh-session",
+        "name": "Local Zenoh Router",
+        "locator": "ws://localhost:10000"
+    },
+    {
+        "id": "inject-node",
+        "type": "inject",
+        "z": "zenoh-example-flow",
+        "name": "Publish Message",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"temperature\":22.5,\"humidity\":65,\"timestamp\":$now()}",
+        "payloadType": "jsonata",
+        "x": 140,
+        "y": 100,
+        "wires": [
+            [
+                "put-node"
+            ]
+        ]
+    },
+    {
+        "id": "put-node",
+        "type": "zenoh-put",
+        "z": "zenoh-example-flow",
+        "name": "Publish to demo/sensor/data",
+        "session": "zenoh-session-1",
+        "keyExpr": "demo/sensor/data",
+        "x": 370,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "subscribe-node",
+        "type": "zenoh-subscribe",
+        "z": "zenoh-example-flow",
+        "name": "Subscribe to demo/sensor/data",
+        "session": "zenoh-session-1",
+        "keyExpr": "demo/sensor/data",
+        "x": 180,
+        "y": 200,
+        "wires": [
+            [
+                "buffer-to-json"
+            ]
+        ]
+    },
+    {
+        "id": "buffer-to-json",
+        "type": "function",
+        "z": "zenoh-example-flow",
+        "name": "Buffer → JSON",
+        "func": "// Convert Buffer to JSON object\nmsg.payload = JSON.parse(msg.payload.toString('utf8'));\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 430,
+        "y": 200,
+        "wires": [
+            [
+                "debug-node"
+            ]
+        ]
+    },
+    {
+        "id": "debug-node",
+        "type": "debug",
+        "z": "zenoh-example-flow",
+        "name": "Display Received Data",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 650,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "comment-1",
+        "type": "comment",
+        "z": "zenoh-example-flow",
+        "name": "Publisher: Click inject to send a message",
+        "info": "",
+        "x": 190,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "comment-2",
+        "type": "comment",
+        "z": "zenoh-example-flow",
+        "name": "Subscriber: Automatically receives and displays messages",
+        "info": "",
+        "x": 230,
+        "y": 160,
+        "wires": []
+    }
+]
