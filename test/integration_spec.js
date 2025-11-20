@@ -297,8 +297,24 @@ describe('Zenoh Integration Tests', function() {
                 const query1 = helper.getNode('query1');
                 const queryable1 = helper.getNode('queryable1');
 
+                let testCompleted = false;
+                let queryReceived = false;
+                let testTimeout = null;
+
+                // Error handlers
+                const errorHandler = function(msg) {
+                    if (!testCompleted) {
+                        testCompleted = true;
+                        clearTimeout(testTimeout);
+                        done(new Error('Zenoh error: ' + msg));
+                    }
+                };
+                query1.on('call:error', errorHandler);
+                queryable1.on('call:error', errorHandler);
+
                 // When queryable receives a query, send a reply
                 helper2.on('input', function(queryMsg) {
+                    queryReceived = true;
                     // Send reply back to queryable
                     queryable1.receive({
                         queryId: queryMsg.queryId,
@@ -310,20 +326,39 @@ describe('Zenoh Integration Tests', function() {
                 // Check the query response
                 helper1.on('input', function(msg) {
                     try {
-                        msg.should.have.property('payload');
-                        msg.payload.should.be.an.Array();
-                        msg.payload.length.should.be.above(0);
+                        if (!testCompleted) {
+                            testCompleted = true;
+                            clearTimeout(testTimeout);
+                            msg.should.have.property('payload');
+                            msg.payload.should.be.an.Array();
+                            msg.payload.length.should.be.above(0);
 
-                        const reply = msg.payload[0];
-                        // Payload should be a Buffer
-                        Buffer.isBuffer(reply.payload).should.be.true();
-                        reply.payload.toString('utf8').should.equal('Response from queryable');
-                        reply.should.have.property('topic', 'test/integration/query');
-                        done();
+                            const reply = msg.payload[0];
+                            // Payload should be a Buffer
+                            Buffer.isBuffer(reply.payload).should.be.true();
+                            reply.payload.toString('utf8').should.equal('Response from queryable');
+                            reply.should.have.property('topic', 'test/integration/query');
+                            done();
+                        }
                     } catch (err) {
-                        done(err);
+                        if (!testCompleted) {
+                            testCompleted = true;
+                            clearTimeout(testTimeout);
+                            done(err);
+                        }
                     }
                 });
+
+                // Timeout with diagnostic info
+                testTimeout = setTimeout(function() {
+                    if (!testCompleted) {
+                        testCompleted = true;
+                        const diagnostics = queryReceived ?
+                            'Query was received by queryable but no reply received by query node' :
+                            'Query was never received by queryable - check if query node sent it';
+                        done(new Error('Test timeout: ' + diagnostics));
+                    }
+                }, 10000);
 
                 // Wait for queryable to be ready
                 setTimeout(function() {
@@ -367,19 +402,50 @@ describe('Zenoh Integration Tests', function() {
 
                 const check1 = helper.getNode('check1');
                 const query1 = helper.getNode('query1');
+                const queryable1 = helper.getNode('queryable1');
+
+                let testCompleted = false;
+                let testTimeout = null;
+
+                // Error handlers
+                const errorHandler = function(msg) {
+                    if (!testCompleted) {
+                        testCompleted = true;
+                        clearTimeout(testTimeout);
+                        done(new Error('Zenoh error: ' + msg));
+                    }
+                };
+                query1.on('call:error', errorHandler);
+                queryable1.on('call:error', errorHandler);
 
                 check1.on('input', function(msg) {
                     try {
-                        msg.should.have.property('zenoh');
-                        msg.zenoh.should.have.property('parameters');
-                        const params = msg.zenoh.parameters;
-                        params.should.containEql('arg1=value1');
-                        params.should.containEql('arg2=value2');
-                        done();
+                        if (!testCompleted) {
+                            testCompleted = true;
+                            clearTimeout(testTimeout);
+                            msg.should.have.property('zenoh');
+                            msg.zenoh.should.have.property('parameters');
+                            const params = msg.zenoh.parameters;
+                            params.should.containEql('arg1=value1');
+                            params.should.containEql('arg2=value2');
+                            done();
+                        }
                     } catch (err) {
-                        done(err);
+                        if (!testCompleted) {
+                            testCompleted = true;
+                            clearTimeout(testTimeout);
+                            done(err);
+                        }
                     }
                 });
+
+                // Timeout with diagnostic info
+                testTimeout = setTimeout(function() {
+                    if (!testCompleted) {
+                        testCompleted = true;
+                        done(new Error('Test timeout: Query was not received by queryable'));
+                    }
+                }, 10000);
 
                 setTimeout(function() {
                     query1.receive({ payload: null });
@@ -423,8 +489,24 @@ describe('Zenoh Integration Tests', function() {
                 const query1 = helper.getNode('query1');
                 const queryable1 = helper.getNode('queryable1');
 
+                let testCompleted = false;
+                let queryReceived = false;
+                let testTimeout = null;
+
+                // Error handlers
+                const errorHandler = function(msg) {
+                    if (!testCompleted) {
+                        testCompleted = true;
+                        clearTimeout(testTimeout);
+                        done(new Error('Zenoh error: ' + msg));
+                    }
+                };
+                query1.on('call:error', errorHandler);
+                queryable1.on('call:error', errorHandler);
+
                 // When queryable receives a query, send multiple replies
                 helper2.on('input', function(queryMsg) {
+                    queryReceived = true;
                     const queryId = queryMsg.queryId;
                     const topic = queryMsg.topic;
 
@@ -456,20 +538,39 @@ describe('Zenoh Integration Tests', function() {
                 // Check the query response
                 helper1.on('input', function(msg) {
                     try {
-                        msg.should.have.property('payload');
-                        msg.payload.should.be.an.Array();
-                        msg.payload.length.should.equal(2);
+                        if (!testCompleted) {
+                            testCompleted = true;
+                            clearTimeout(testTimeout);
+                            msg.should.have.property('payload');
+                            msg.payload.should.be.an.Array();
+                            msg.payload.length.should.equal(2);
 
-                        // Both payloads should be Buffers
-                        Buffer.isBuffer(msg.payload[0].payload).should.be.true();
-                        Buffer.isBuffer(msg.payload[1].payload).should.be.true();
-                        msg.payload[0].payload.toString('utf8').should.equal('Reply 1');
-                        msg.payload[1].payload.toString('utf8').should.equal('Reply 2');
-                        done();
+                            // Both payloads should be Buffers
+                            Buffer.isBuffer(msg.payload[0].payload).should.be.true();
+                            Buffer.isBuffer(msg.payload[1].payload).should.be.true();
+                            msg.payload[0].payload.toString('utf8').should.equal('Reply 1');
+                            msg.payload[1].payload.toString('utf8').should.equal('Reply 2');
+                            done();
+                        }
                     } catch (err) {
-                        done(err);
+                        if (!testCompleted) {
+                            testCompleted = true;
+                            clearTimeout(testTimeout);
+                            done(err);
+                        }
                     }
                 });
+
+                // Timeout with diagnostic info
+                testTimeout = setTimeout(function() {
+                    if (!testCompleted) {
+                        testCompleted = true;
+                        const diagnostics = queryReceived ?
+                            'Query was received by queryable but no replies received by query node' :
+                            'Query was never received by queryable';
+                        done(new Error('Test timeout: ' + diagnostics));
+                    }
+                }, 10000);
 
                 setTimeout(function() {
                     query1.receive({ payload: null });
