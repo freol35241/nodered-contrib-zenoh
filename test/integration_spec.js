@@ -506,33 +506,57 @@ describe('Zenoh Integration Tests', function() {
 
                 // When queryable receives a query, send multiple replies
                 helper2.on('input', function(queryMsg) {
-                    queryReceived = true;
-                    const queryId = queryMsg.queryId;
-                    const topic = queryMsg.topic;
+                    try {
+                        queryReceived = true;
+                        const queryId = queryMsg.queryId;
+                        const topic = queryMsg.topic;
 
-                    // Send first reply
-                    queryable1.receive({
-                        queryId: queryId,
-                        keyExpr: topic,
-                        payload: 'Reply 1'
-                    });
-
-                    // Send second reply
-                    setTimeout(function() {
+                        // Send first reply
                         queryable1.receive({
                             queryId: queryId,
                             keyExpr: topic,
-                            payload: 'Reply 2'
+                            payload: 'Reply 1'
                         });
 
-                        // Finalize the query
+                        // Send second reply
                         setTimeout(function() {
-                            queryable1.receive({
-                                queryId: queryId,
-                                finalize: true
-                            });
+                            try {
+                                queryable1.receive({
+                                    queryId: queryId,
+                                    keyExpr: topic,
+                                    payload: 'Reply 2'
+                                });
+
+                                // Finalize the query
+                                setTimeout(function() {
+                                    try {
+                                        queryable1.receive({
+                                            queryId: queryId,
+                                            finalize: true
+                                        });
+                                    } catch (err) {
+                                        if (!testCompleted) {
+                                            testCompleted = true;
+                                            clearTimeout(testTimeout);
+                                            done(new Error('Error finalizing query: ' + err.message));
+                                        }
+                                    }
+                                }, 100);
+                            } catch (err) {
+                                if (!testCompleted) {
+                                    testCompleted = true;
+                                    clearTimeout(testTimeout);
+                                    done(new Error('Error sending Reply 2: ' + err.message));
+                                }
+                            }
                         }, 100);
-                    }, 100);
+                    } catch (err) {
+                        if (!testCompleted) {
+                            testCompleted = true;
+                            clearTimeout(testTimeout);
+                            done(new Error('Error in queryable handler: ' + err.message));
+                        }
+                    }
                 });
 
                 // Check the query response
