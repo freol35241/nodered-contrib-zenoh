@@ -10,7 +10,7 @@ jobs:
 
     permissions:
       contents: read
-      id-token: write  # Required for npm provenance
+      id-token: write  # Required for npm trusted publishing (OIDC)
 
     steps:
     - uses: actions/checkout@v4
@@ -61,10 +61,9 @@ jobs:
 
         echo "✓ Version matches release tag"
 
-    - name: Publish to npm
+    - name: Publish to npm with trusted publishing
       run: npm publish --provenance --access public
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # No NPM_TOKEN needed - uses OIDC token from id-token: write permission
 
     - name: Create publication summary
       run: |
