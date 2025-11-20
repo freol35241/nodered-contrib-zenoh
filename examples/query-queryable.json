@@ -1,0 +1,159 @@
+[
+    {
+        "id": "query-example-flow",
+        "type": "tab",
+        "label": "Zenoh Query/Queryable",
+        "disabled": false,
+        "info": "# Zenoh Query/Queryable Example\n\nThis example demonstrates:\n- Implementing a queryable that responds to requests\n- Sending queries and receiving replies\n- Handling query parameters\n\n## Setup\n\n1. Configure the Zenoh Session node with your router address\n2. Deploy the flow\n3. Click the inject node to send a query\n4. View the replies in the debug panel\n\n## How it works\n\n- The queryable listens for queries on `demo/service/**`\n- When a query arrives, it prepares a response with mock data\n- The query node sends a request and collects all replies"
+    },
+    {
+        "id": "zenoh-session-2",
+        "type": "zenoh-session",
+        "name": "Local Zenoh Router",
+        "locator": "ws://localhost:10000"
+    },
+    {
+        "id": "queryable-node",
+        "type": "zenoh-queryable",
+        "z": "query-example-flow",
+        "name": "Service Queryable",
+        "session": "zenoh-session-2",
+        "keyExpr": "demo/service/**",
+        "x": 150,
+        "y": 100,
+        "wires": [
+            [
+                "prepare-reply"
+            ]
+        ]
+    },
+    {
+        "id": "prepare-reply",
+        "type": "function",
+        "z": "query-example-flow",
+        "name": "Prepare Response",
+        "func": "// Extract query parameters\nconst params = msg.zenoh.parameters || '';\n\n// Prepare reply with mock data\nmsg.keyExpr = msg.topic;\nmsg.payload = {\n    service: 'demo-service',\n    status: 'active',\n    timestamp: Date.now(),\n    requestParams: params\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 370,
+        "y": 100,
+        "wires": [
+            [
+                "send-reply"
+            ]
+        ]
+    },
+    {
+        "id": "send-reply",
+        "type": "zenoh-queryable",
+        "z": "query-example-flow",
+        "name": "Send Reply",
+        "session": "zenoh-session-2",
+        "keyExpr": "",
+        "x": 570,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "inject-query",
+        "type": "inject",
+        "z": "query-example-flow",
+        "name": "Send Query",
+        "props": [
+            {
+                "p": "selector",
+                "v": "demo/service/status?client=example",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 130,
+        "y": 220,
+        "wires": [
+            [
+                "query-node"
+            ]
+        ]
+    },
+    {
+        "id": "query-node",
+        "type": "zenoh-query",
+        "z": "query-example-flow",
+        "name": "Query Service",
+        "session": "zenoh-session-2",
+        "selector": "demo/service/**",
+        "timeout": "5000",
+        "x": 320,
+        "y": 220,
+        "wires": [
+            [
+                "process-replies"
+            ]
+        ]
+    },
+    {
+        "id": "process-replies",
+        "type": "function",
+        "z": "query-example-flow",
+        "name": "Process Replies",
+        "func": "// Convert Buffer payloads to JSON\nif (Array.isArray(msg.payload)) {\n    msg.payload = msg.payload.map(reply => {\n        if (Buffer.isBuffer(reply.payload)) {\n            reply.payload = JSON.parse(reply.payload.toString('utf8'));\n        }\n        return reply;\n    });\n}\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 530,
+        "y": 220,
+        "wires": [
+            [
+                "debug-replies"
+            ]
+        ]
+    },
+    {
+        "id": "debug-replies",
+        "type": "debug",
+        "z": "query-example-flow",
+        "name": "Display Replies",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 730,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "comment-queryable",
+        "type": "comment",
+        "z": "query-example-flow",
+        "name": "Queryable: Responds to incoming queries",
+        "info": "",
+        "x": 190,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "comment-query",
+        "type": "comment",
+        "z": "query-example-flow",
+        "name": "Query: Click inject to request data from queryables",
+        "info": "",
+        "x": 220,
+        "y": 180,
+        "wires": []
+    }
+]

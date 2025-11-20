@@ -1,0 +1,82 @@
+name: Release and Publish
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write  # Required for npm trusted publishing (OIDC)
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js 20.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        registry-url: 'https://registry.npmjs.org'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests
+      env:
+        NODE_OPTIONS: "--experimental-wasm-modules --no-warnings"
+      run: npm run test:unit
+
+    - name: Verify package contents
+      run: |
+        echo "=== Files that will be published ==="
+        npm pack --dry-run
+        echo ""
+        echo "=== Verifying required files exist ==="
+        test -d nodes || (echo "ERROR: nodes/ directory missing" && exit 1)
+        test -d examples || (echo "ERROR: examples/ directory missing" && exit 1)
+        test -f README.md || (echo "ERROR: README.md missing" && exit 1)
+        test -f CHANGELOG.md || (echo "ERROR: CHANGELOG.md missing" && exit 1)
+        test -f LICENSE || (echo "ERROR: LICENSE missing" && exit 1)
+        echo "✓ All required files present"
+
+    - name: Check version match
+      run: |
+        PACKAGE_VERSION=$(node -p "require('./package.json').version")
+        RELEASE_TAG=${GITHUB_REF#refs/tags/}
+        RELEASE_VERSION=${RELEASE_TAG#v}
+
+        echo "Package version: $PACKAGE_VERSION"
+        echo "Release tag: $RELEASE_TAG"
+        echo "Release version: $RELEASE_VERSION"
+
+        if [ "$PACKAGE_VERSION" != "$RELEASE_VERSION" ]; then
+          echo "ERROR: Version mismatch!"
+          echo "package.json version ($PACKAGE_VERSION) does not match release tag ($RELEASE_VERSION)"
+          exit 1
+        fi
+
+        echo "✓ Version matches release tag"
+
+    - name: Publish to npm with trusted publishing
+      run: npm publish --provenance --access public
+      # No NPM_TOKEN needed - uses OIDC token from id-token: write permission
+
+    - name: Create publication summary
+      run: |
+        PACKAGE_VERSION=$(node -p "require('./package.json').version")
+        PACKAGE_NAME=$(node -p "require('./package.json').name")
+
+        echo "## 📦 Published to npm" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Package**: [\`$PACKAGE_NAME\`](https://www.npmjs.com/package/$PACKAGE_NAME)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version**: \`$PACKAGE_VERSION\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Release**: [${GITHUB_REF#refs/tags/}]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/${GITHUB_REF#refs/tags/})" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Installation" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+        echo "npm install $PACKAGE_NAME" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

@@ -1,8 +1,7 @@
 {
   "name": "@freol35241/nodered-contrib-zenoh",
   "version": "0.1.0",
-  "description": "Node-RED nodes for Eclipse Zenoh integration",
-  "main": "index.js",
+  "description": "Node-RED nodes for Eclipse Zenoh - a pub/sub, query/queryable protocol that unifies data in motion, data at rest, and computational tasks",
   "scripts": {
     "test": "npm run test:unit",
     "test:unit": "mocha \"test/nodes_spec.js\"",
@@ -13,13 +12,25 @@
     "node-red",
     "zenoh",
     "pub-sub",
-    "query"
+    "query",
+    "mqtt",
+    "dds",
+    "websocket",
+    "iot",
+    "robotics"
   ],
   "author": "freol35241",
   "license": "Apache-2.0",
   "engines": {
     "node": ">=16.0.0"
   },
+  "files": [
+    "nodes/",
+    "examples/",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "node-red": {
     "nodes": {
       "zenoh-session": "nodes/zenoh-session.js",
@@ -42,5 +53,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/freol35241/nodered-contrib-zenoh.git"
+  },
+  "homepage": "https://github.com/freol35241/nodered-contrib-zenoh#readme",
+  "bugs": {
+    "url": "https://github.com/freol35241/nodered-contrib-zenoh/issues"
   }
 }
