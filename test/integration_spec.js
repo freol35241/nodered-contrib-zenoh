@@ -515,52 +515,31 @@ describe('Zenoh Integration Tests', function() {
                 query1.on('call:error', errorHandler);
                 queryable1.on('call:error', errorHandler);
 
-                // When queryable receives a query, send multiple replies
+                // When queryable receives a query, send multiple replies (synchronously)
                 helper2.on('input', function(queryMsg) {
                     try {
                         queryReceived = true;
                         const queryId = queryMsg.queryId;
                         const topic = queryMsg.topic;
 
-                        // Send first reply
+                        // Send both replies immediately (no setTimeout)
                         queryable1.receive({
                             queryId: queryId,
                             keyExpr: topic,
                             payload: 'Reply 1'
                         });
 
-                        // Send second reply
-                        setTimeout(function() {
-                            try {
-                                queryable1.receive({
-                                    queryId: queryId,
-                                    keyExpr: topic,
-                                    payload: 'Reply 2'
-                                });
+                        queryable1.receive({
+                            queryId: queryId,
+                            keyExpr: topic,
+                            payload: 'Reply 2'
+                        });
 
-                                // Finalize the query
-                                setTimeout(function() {
-                                    try {
-                                        queryable1.receive({
-                                            queryId: queryId,
-                                            finalize: true
-                                        });
-                                    } catch (err) {
-                                        if (!testCompleted) {
-                                            testCompleted = true;
-                                            clearTimeout(testTimeout);
-                                            done(new Error('Error finalizing query: ' + err.message));
-                                        }
-                                    }
-                                }, 100);
-                            } catch (err) {
-                                if (!testCompleted) {
-                                    testCompleted = true;
-                                    clearTimeout(testTimeout);
-                                    done(new Error('Error sending Reply 2: ' + err.message));
-                                }
-                            }
-                        }, 100);
+                        // Finalize immediately after sending replies
+                        queryable1.receive({
+                            queryId: queryId,
+                            finalize: true
+                        });
                     } catch (err) {
                         if (!testCompleted) {
                             testCompleted = true;
