@@ -125,7 +125,10 @@ describe('Zenoh Integration Tests', function() {
                         if (!messageReceived) {
                             messageReceived = true;
                             clearTimeout(testTimeout);
-                            msg.should.have.property('payload', 'Hello Zenoh!');
+                            // Payload should be a Buffer containing the UTF-8 bytes
+                            msg.should.have.property('payload');
+                            Buffer.isBuffer(msg.payload).should.be.true();
+                            msg.payload.toString('utf8').should.equal('Hello Zenoh!');
                             msg.should.have.property('topic', 'test/integration/pubsub');
                             msg.should.have.property('zenoh');
                             msg.zenoh.should.have.property('keyExpr', 'test/integration/pubsub');
@@ -187,7 +190,10 @@ describe('Zenoh Integration Tests', function() {
                     try {
                         if (!messageReceived) {
                             messageReceived = true;
-                            msg.payload.should.deepEqual(testData);
+                            // Payload should be a Buffer containing JSON
+                            Buffer.isBuffer(msg.payload).should.be.true();
+                            const parsed = JSON.parse(msg.payload.toString('utf8'));
+                            parsed.should.deepEqual(testData);
                             done();
                         }
                     } catch (err) {
@@ -268,13 +274,7 @@ describe('Zenoh Integration Tests', function() {
                     name: 'test-queryable',
                     session: 'session1',
                     keyExpr: 'test/integration/query',
-                    wires: [['reply1'], []]
-                },
-                {
-                    id: 'reply1',
-                    type: 'function',
-                    func: 'msg.keyExpr = msg.topic; msg.payload = "Response from queryable"; return msg;',
-                    wires: [['queryable1']]
+                    wires: [['helper2'], []]
                 },
                 {
                     id: 'query1',
@@ -285,13 +285,29 @@ describe('Zenoh Integration Tests', function() {
                     timeout: 5000,
                     wires: [['helper1']]
                 },
-                { id: 'helper1', type: 'helper' }
+                { id: 'helper1', type: 'helper' },
+                { id: 'helper2', type: 'helper' }
             ];
 
-            helper.load([sessionNode, queryableNode, queryNode], flow, function() {
-                const helper1 = helper.getNode('helper1');
-                const query1 = helper.getNode('query1');
+            helper.load([sessionNode, queryableNode, queryNode], flow, function(err) {
+                if (err) return done(err);
 
+                const helper1 = helper.getNode('helper1');
+                const helper2 = helper.getNode('helper2');
+                const query1 = helper.getNode('query1');
+                const queryable1 = helper.getNode('queryable1');
+
+                // When queryable receives a query, send a reply
+                helper2.on('input', function(queryMsg) {
+                    // Send reply back to queryable
+                    queryable1.receive({
+                        queryId: queryMsg.queryId,
+                        keyExpr: queryMsg.topic,
+                        payload: 'Response from queryable'
+                    });
+                });
+
+                // Check the query response
                 helper1.on('input', function(msg) {
                     try {
                         msg.should.have.property('payload');
@@ -299,7 +315,9 @@ describe('Zenoh Integration Tests', function() {
                         msg.payload.length.should.be.above(0);
 
                         const reply = msg.payload[0];
-                        reply.should.have.property('payload', 'Response from queryable');
+                        // Payload should be a Buffer
+                        Buffer.isBuffer(reply.payload).should.be.true();
+                        reply.payload.toString('utf8').should.equal('Response from queryable');
                         reply.should.have.property('topic', 'test/integration/query');
                         done();
                     } catch (err) {
@@ -344,7 +362,9 @@ describe('Zenoh Integration Tests', function() {
                 }
             ];
 
-            helper.load([sessionNode, queryableNode, queryNode], flow, function() {
+            helper.load([sessionNode, queryableNode, queryNode], flow, function(err) {
+                if (err) return done(err);
+
                 const check1 = helper.getNode('check1');
                 const query1 = helper.getNode('query1');
 
@@ -380,36 +400,7 @@ describe('Zenoh Integration Tests', function() {
                     name: 'test-queryable',
                     session: 'session1',
                     keyExpr: 'test/integration/multi',
-                    wires: [['reply1'], []]
-                },
-                {
-                    id: 'reply1',
-                    type: 'function',
-                    func: `
-                        // Send first reply
-                        var msg1 = Object.assign({}, msg);
-                        msg1.keyExpr = msg.topic;
-                        msg1.payload = 'Reply 1';
-                        node.send(msg1);
-
-                        // Send second reply
-                        setTimeout(function() {
-                            var msg2 = Object.assign({}, msg);
-                            msg2.keyExpr = msg.topic;
-                            msg2.payload = 'Reply 2';
-                            node.send(msg2);
-
-                            // Finalize
-                            setTimeout(function() {
-                                var msg3 = Object.assign({}, msg);
-                                msg3.finalize = true;
-                                node.send(msg3);
-                            }, 100);
-                        }, 100);
-
-                        return null;
-                    `,
-                    wires: [['queryable1']]
+                    wires: [['helper2'], []]
                 },
                 {
                     id: 'query1',
@@ -420,21 +411,60 @@ describe('Zenoh Integration Tests', function() {
                     timeout: 5000,
                     wires: [['helper1']]
                 },
-                { id: 'helper1', type: 'helper' }
+                { id: 'helper1', type: 'helper' },
+                { id: 'helper2', type: 'helper' }
             ];
 
-            helper.load([sessionNode, queryableNode, queryNode], flow, function() {
-                const helper1 = helper.getNode('helper1');
-                const query1 = helper.getNode('query1');
+            helper.load([sessionNode, queryableNode, queryNode], flow, function(err) {
+                if (err) return done(err);
 
+                const helper1 = helper.getNode('helper1');
+                const helper2 = helper.getNode('helper2');
+                const query1 = helper.getNode('query1');
+                const queryable1 = helper.getNode('queryable1');
+
+                // When queryable receives a query, send multiple replies
+                helper2.on('input', function(queryMsg) {
+                    const queryId = queryMsg.queryId;
+                    const topic = queryMsg.topic;
+
+                    // Send first reply
+                    queryable1.receive({
+                        queryId: queryId,
+                        keyExpr: topic,
+                        payload: 'Reply 1'
+                    });
+
+                    // Send second reply
+                    setTimeout(function() {
+                        queryable1.receive({
+                            queryId: queryId,
+                            keyExpr: topic,
+                            payload: 'Reply 2'
+                        });
+
+                        // Finalize the query
+                        setTimeout(function() {
+                            queryable1.receive({
+                                queryId: queryId,
+                                finalize: true
+                            });
+                        }, 100);
+                    }, 100);
+                });
+
+                // Check the query response
                 helper1.on('input', function(msg) {
                     try {
                         msg.should.have.property('payload');
                         msg.payload.should.be.an.Array();
                         msg.payload.length.should.equal(2);
 
-                        msg.payload[0].payload.should.equal('Reply 1');
-                        msg.payload[1].payload.should.equal('Reply 2');
+                        // Both payloads should be Buffers
+                        Buffer.isBuffer(msg.payload[0].payload).should.be.true();
+                        Buffer.isBuffer(msg.payload[1].payload).should.be.true();
+                        msg.payload[0].payload.toString('utf8').should.equal('Reply 1');
+                        msg.payload[1].payload.toString('utf8').should.equal('Reply 2');
                         done();
                     } catch (err) {
                         done(err);
@@ -485,7 +515,9 @@ describe('Zenoh Integration Tests', function() {
                         if (!messageReceived) {
                             messageReceived = true;
                             msg.should.have.property('topic', 'test/wildcard/deep/nested/key');
-                            msg.should.have.property('payload', 'wildcard test');
+                            // Payload should be a Buffer containing the UTF-8 bytes
+                            Buffer.isBuffer(msg.payload).should.be.true();
+                            msg.payload.toString('utf8').should.equal('wildcard test');
                             done();
                         }
                     } catch (err) {
