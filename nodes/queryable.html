@@ -7,7 +7,8 @@
             session: { value: '', type: 'zenoh-session', required: true },
             keyExpr: { value: '', required: true },
             complete: { value: false },
-            allowedOrigin: { value: '' }
+            allowedOrigin: { value: '' },
+            expectedReplies: { value: 1 }
         },
         inputs: 1,
         outputs: 2,
@@ -41,6 +42,11 @@
             <option value="1">Remote</option>
             <option value="2">Any</option>
         </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-expectedReplies"><i class="fa fa-reply"></i> Expected Replies</label>
+        <input type="number" id="node-input-expectedReplies" placeholder="1" min="0" style="width:70px;">
+        <label for="node-input-expectedReplies" style="width:auto; margin-left:5px;">Auto-finalize after this many replies (0 = manual)</label>
     </div>
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
@@ -106,6 +112,13 @@
     </ul>
     <p>Multiple replies can be sent for a single query. When done, send a message with <code>finalize: true</code>.</p>
     <p>To send an error reply, set <code>error: true</code>.</p>
+    <p><b>Expected Replies</b> controls automatic finalization:</p>
+    <ul>
+        <li>Set to <b>1</b> (default) to auto-finalize after sending one reply</li>
+        <li>Set to <b>N</b> to auto-finalize after N replies</li>
+        <li>Set to <b>0</b> to disable auto-finalization (manual finalization required)</li>
+    </ul>
+    <p>Auto-finalization prevents queries from hanging until timeout. If manual finalization is needed for multiple replies, set to 0 and send <code>finalize: true</code> when done.</p>
     <p><b>Complete</b> flag indicates that this queryable can provide complete data for its key expression.
     Queries with target "All Complete" will only be sent to queryables marked as complete.</p>
     <p>The <b>Allowed Origin</b> option filters queries based on their origin:</p>

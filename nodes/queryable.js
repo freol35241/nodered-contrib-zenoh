@@ -6,10 +6,12 @@ module.exports = function(RED) {
         this.keyExpr = config.keyExpr;
         this.complete = config.complete;
         this.allowedOrigin = config.allowedOrigin;
+        this.expectedReplies = config.expectedReplies !== undefined ? parseInt(config.expectedReplies) : 1;
         this.sessionConfig = RED.nodes.getNode(config.session);
         this.queryable = null;
         this.polling = false;
         this.pendingQueries = new Map();
+        this.replyCount = new Map();
 
         if (!this.sessionConfig) {
             this.error('No session configuration provided');
@@ -49,6 +51,7 @@ module.exports = function(RED) {
                     if (query) {
                         const queryId = Math.random().toString(36).substring(7);
                         node.pendingQueries.set(queryId, query);
+                        node.replyCount.set(queryId, 0);
 
                         // Extract query payload as raw bytes (Buffer)
                         let payload = null;
@@ -108,6 +111,7 @@ module.exports = function(RED) {
                 if (msg.finalize) {
                     await query.finalize();
                     node.pendingQueries.delete(queryId);
+                    node.replyCount.delete(queryId);
                 } else if (msg.error) {
                     // Convert error payload to Buffer (raw bytes)
                     let buffer;
@@ -132,6 +136,18 @@ module.exports = function(RED) {
                         options.encoding = msg.encoding;
                     }
                     await query.replyErr(buffer, options);
+
+                    // Auto-finalize if we've reached the expected number of replies
+                    if (node.expectedReplies > 0) {
+                        const currentCount = node.replyCount.get(queryId) || 0;
+                        node.replyCount.set(queryId, currentCount + 1);
+
+                        if (node.replyCount.get(queryId) >= node.expectedReplies) {
+                            await query.finalize();
+                            node.pendingQueries.delete(queryId);
+                            node.replyCount.delete(queryId);
+                        }
+                    }
                 } else {
                     const keyExpr = msg.keyExpr || msg.topic;
                     if (!keyExpr) {
@@ -171,6 +187,18 @@ module.exports = function(RED) {
                     }
 
                     await query.reply(keyExpr, buffer, options);
+
+                    // Auto-finalize if we've reached the expected number of replies
+                    if (node.expectedReplies > 0) {
+                        const currentCount = node.replyCount.get(queryId) || 0;
+                        node.replyCount.set(queryId, currentCount + 1);
+
+                        if (node.replyCount.get(queryId) >= node.expectedReplies) {
+                            await query.finalize();
+                            node.pendingQueries.delete(queryId);
+                            node.replyCount.delete(queryId);
+                        }
+                    }
                 }
 
                 done();
@@ -199,6 +227,7 @@ module.exports = function(RED) {
                 }
             }
             node.pendingQueries.clear();
+            node.replyCount.clear();
 
             if (node.queryable) {
                 try {
