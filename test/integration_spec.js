@@ -454,6 +454,8 @@ describe('Zenoh Integration Tests', function() {
         });
 
         it('should handle multiple replies from queryable', function(done) {
+            this.timeout(15000); // Reduce from 30s to 15s for faster feedback
+
             const flow = [
                 {
                     id: 'session1',
@@ -481,8 +483,17 @@ describe('Zenoh Integration Tests', function() {
                 { id: 'helper2', type: 'helper' }
             ];
 
+            // Set up a safety timeout immediately in case helper.load() hangs
+            const safetyTimeout = setTimeout(function() {
+                done(new Error('Test setup timeout: helper.load() callback was never called or is hanging'));
+            }, 12000);
+
             helper.load([sessionNode, queryableNode, queryNode], flow, function(err) {
-                if (err) return done(err);
+                clearTimeout(safetyTimeout); // Clear safety timeout once callback is called
+
+                if (err) {
+                    return done(err);
+                }
 
                 const helper1 = helper.getNode('helper1');
                 const helper2 = helper.getNode('helper2');
