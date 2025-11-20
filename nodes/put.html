@@ -17,7 +17,7 @@
         outputs: 0,
         icon: 'bridge.png',
         label: function() {
-            return this.name || this.keyExpr || 'zenoh-put';
+            return this.name || (this.keyExpr ? 'Put: ' + this.keyExpr : 'zenoh-put');
         }
     });
 </script>

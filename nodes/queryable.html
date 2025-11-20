@@ -15,7 +15,7 @@
         outputLabels: ['queries', 'status'],
         icon: 'bridge.png',
         label: function() {
-            return this.name || this.keyExpr || 'zenoh-queryable';
+            return this.name || (this.keyExpr ? 'Queryable: ' + this.keyExpr : 'zenoh-queryable');
         }
     });
 </script>
