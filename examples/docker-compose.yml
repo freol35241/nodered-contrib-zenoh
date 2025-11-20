@@ -9,6 +9,10 @@ services:
       - "7447:7447"    # Zenoh peer/router communication
       - "8000:8000"    # REST API
       - "10000:10000"  # WebSocket (remote-api plugin)
+    volumes:
+      # CRITICAL: Mount the remote-api plugin
+      # The plugin must be downloaded separately (see setup instructions below)
+      - ./zenoh_plugins:/root/.zenoh
     command: >
       --cfg='mode:"router"'
       --cfg='listen:["tcp/0.0.0.0:7447"]'

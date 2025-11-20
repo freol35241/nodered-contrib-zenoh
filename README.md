@@ -104,7 +104,9 @@ docker run -p 10000:10000 eclipse/zenoh --ws-port 10000
 
 ### Docker Compose Setup
 
-For a complete setup with both Node-RED and Zenoh running together, use this Docker Compose configuration:
+For a complete setup with both Node-RED and Zenoh running together, use this Docker Compose configuration.
+
+**IMPORTANT**: The `eclipse/zenoh` Docker image does NOT include the `remote-api` plugin by default. The plugin must be downloaded separately and mounted into the container. This is the same approach used in our integration tests.
 
 ```yaml
 version: '3.8'
@@ -118,6 +120,10 @@ services:
       - "7447:7447"    # Zenoh peer/router communication
       - "8000:8000"    # REST API
       - "10000:10000"  # WebSocket (remote-api plugin)
+    volumes:
+      # CRITICAL: Mount the remote-api plugin
+      # The plugin must be downloaded separately (see setup instructions below)
+      - ./zenoh_plugins:/root/.zenoh
     command: >
       --cfg='mode:"router"'
       --cfg='listen:["tcp/0.0.0.0:7447"]'
@@ -161,27 +167,54 @@ volumes:
   node-red-data:
 ```
 
-**Usage:**
+**Setup Instructions:**
 
-1. Save the above configuration as `docker-compose.yml`
+1. Download the setup files:
+   ```bash
+   # Create a directory for your deployment
+   mkdir zenoh-nodered && cd zenoh-nodered
 
-2. Start the services:
+   # Download docker-compose.yml and setup script from the examples folder
+   curl -O https://raw.githubusercontent.com/freol35241/nodered-contrib-zenoh/main/examples/docker-compose.yml
+   curl -O https://raw.githubusercontent.com/freol35241/nodered-contrib-zenoh/main/examples/setup-zenoh-plugin.sh
+   chmod +x setup-zenoh-plugin.sh
+   ```
+
+2. **CRITICAL**: Download the Zenoh remote-api plugin:
+   ```bash
+   # Run the setup script to download and extract the plugin
+   ./setup-zenoh-plugin.sh
+   ```
+
+   This downloads the `zenoh-plugin-remote-api` v1.6.2 for x86_64 Linux and places it in `zenoh_plugins/lib/`. The plugin is required for WebSocket connectivity but is not included in the Docker image by default.
+
+   **Manual alternative** (if you prefer):
+   ```bash
+   mkdir -p zenoh_plugins/lib
+   cd zenoh_plugins/lib
+   curl -L -o plugin.zip "https://download.eclipse.org/zenoh/zenoh-plugin-remote-api/1.6.2/zenoh-ts-1.6.2-x86_64-unknown-linux-musl-standalone.zip"
+   unzip plugin.zip
+   rm plugin.zip
+   cd ../..
+   ```
+
+3. Start the services:
    ```bash
    docker-compose up -d
    ```
 
-3. Install the Zenoh nodes in Node-RED:
+4. Install the Zenoh nodes in Node-RED:
    - Open Node-RED at http://localhost:1880
    - Go to Menu (☰) → Manage palette → Install
    - Search for `@freol35241/nodered-contrib-zenoh`
    - Click Install
 
-4. Configure the Zenoh Session node:
+5. Configure the Zenoh Session node:
    - Drag a Zenoh node into your flow
    - Configure the session with locator: `ws://zenoh-router:10000`
    - Note: Use the service name `zenoh-router` instead of `localhost` for inter-container communication
 
-5. Import example flows:
+6. Import example flows:
    - Go to Menu (☰) → Import → Examples
    - Navigate to `@freol35241/nodered-contrib-zenoh`
    - Select a flow to try
@@ -216,9 +249,24 @@ If you encounter WASM-related errors in Node-RED:
 3. Restart Node-RED if needed: `docker-compose restart node-red`
 
 If Zenoh connection fails:
-1. Verify the router is healthy: `docker-compose ps`
-2. Check WebSocket port is accessible: `docker-compose exec node-red nc -zv zenoh-router 10000`
-3. Review Zenoh logs: `docker-compose logs zenoh-router | grep remote_api`
+1. **Verify the plugin was downloaded**: Check that `zenoh_plugins/lib/` contains the plugin files
+   ```bash
+   ls -la zenoh_plugins/lib/
+   # You should see libzenoh_plugin_remote_api.so or similar
+   ```
+2. **Check Zenoh router logs** for plugin loading:
+   ```bash
+   docker-compose logs zenoh-router | grep -i plugin
+   docker-compose logs zenoh-router | grep -i remote_api
+   ```
+3. Verify the router is healthy: `docker-compose ps`
+4. Check WebSocket port is accessible: `docker-compose exec node-red nc -zv zenoh-router 10000`
+5. Test the REST API: `curl http://localhost:8000/@/router/local`
+
+If the plugin isn't loading, ensure:
+- The `zenoh_plugins` directory exists and contains the extracted plugin in the `lib/` subdirectory
+- The volume mount path matches: `./zenoh_plugins:/root/.zenoh`
+- You downloaded the correct architecture (x86_64-unknown-linux-musl) for Docker
 
 ## Nodes
 
