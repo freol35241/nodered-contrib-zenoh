@@ -169,34 +169,48 @@ volumes:
 
 **Setup Instructions:**
 
-1. Download the setup files:
+1. Download the docker-compose.yml file:
    ```bash
    # Create a directory for your deployment
    mkdir zenoh-nodered && cd zenoh-nodered
 
-   # Download docker-compose.yml and setup script from the examples folder
+   # Download docker-compose.yml from the examples folder
    curl -O https://raw.githubusercontent.com/freol35241/nodered-contrib-zenoh/main/examples/docker-compose.yml
-   curl -O https://raw.githubusercontent.com/freol35241/nodered-contrib-zenoh/main/examples/setup-zenoh-plugin.sh
-   chmod +x setup-zenoh-plugin.sh
    ```
 
-2. **CRITICAL**: Download the Zenoh remote-api plugin:
-   ```bash
-   # Run the setup script to download and extract the plugin
-   ./setup-zenoh-plugin.sh
-   ```
+2. **CRITICAL**: Download the Zenoh remote-api plugin for your platform:
 
-   This downloads the `zenoh-plugin-remote-api` v1.6.2 for x86_64 Linux and places it in `zenoh_plugins/lib/`. The plugin is required for WebSocket connectivity but is not included in the Docker image by default.
+   The `zenoh-plugin-remote-api` is required for WebSocket connectivity but is NOT included in the Docker image by default.
 
-   **Manual alternative** (if you prefer):
-   ```bash
-   mkdir -p zenoh_plugins/lib
-   cd zenoh_plugins/lib
-   curl -L -o plugin.zip "https://download.eclipse.org/zenoh/zenoh-plugin-remote-api/1.6.2/zenoh-ts-1.6.2-x86_64-unknown-linux-musl-standalone.zip"
-   unzip plugin.zip
-   rm plugin.zip
-   cd ../..
-   ```
+   **Steps:**
+
+   a. Browse to the Eclipse Zenoh plugin repository:
+      **https://download.eclipse.org/zenoh/zenoh-plugin-remote-api/**
+
+   b. Navigate to version `1.6.2/` (must match the Zenoh router version)
+
+   c. Download the appropriate standalone build for your platform:
+      - **x86_64 Linux (most common)**: `zenoh-ts-1.6.2-x86_64-unknown-linux-musl-standalone.zip`
+      - **ARM64 Linux (Raspberry Pi, ARM servers)**: `zenoh-ts-1.6.2-aarch64-unknown-linux-musl-standalone.zip`
+      - **macOS Intel**: `zenoh-ts-1.6.2-x86_64-apple-darwin-standalone.zip`
+      - **macOS Apple Silicon**: `zenoh-ts-1.6.2-aarch64-apple-darwin-standalone.zip`
+
+   d. Extract the plugin to the correct location:
+      ```bash
+      mkdir -p zenoh_plugins/lib
+      cd zenoh_plugins/lib
+
+      # Extract your downloaded plugin zip file here
+      unzip ~/Downloads/zenoh-ts-1.6.2-*-standalone.zip
+
+      # Verify the plugin library file exists
+      ls -la
+      # You should see: libzenoh_plugin_remote_api.so (Linux) or .dylib (macOS)
+
+      cd ../..
+      ```
+
+   **Important**: The plugin architecture must match your Docker host platform, not the container. Docker Desktop on Mac needs the macOS plugin, not Linux.
 
 3. Start the services:
    ```bash
