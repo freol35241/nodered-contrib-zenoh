@@ -49,26 +49,30 @@ Demonstrates query/queryable pattern:
 
    a. Navigate to `1.6.2/` (must match the Zenoh router version in docker-compose.yml)
 
-   b. Download the **standalone** build for your platform:
-      - **x86_64 Linux (most Docker hosts)**: `zenoh-ts-1.6.2-x86_64-unknown-linux-musl-standalone.zip`
-      - **ARM64 Linux (Raspberry Pi, ARM servers)**: `zenoh-ts-1.6.2-aarch64-unknown-linux-musl-standalone.zip`
-      - **macOS Intel (Docker Desktop)**: `zenoh-ts-1.6.2-x86_64-apple-darwin-standalone.zip`
-      - **macOS Apple Silicon (Docker Desktop)**: `zenoh-ts-1.6.2-aarch64-apple-darwin-standalone.zip`
+   b. Download the **standalone** build for your **host architecture**:
+
+      **The plugin must match the container OS (Linux) and your host CPU architecture.**
+
+      Check your architecture with `uname -m` (returns `x86_64` or `aarch64`/`arm64`):
+
+      - **x86_64 hosts** (Intel/AMD Linux, Intel Mac): `zenoh-ts-1.6.2-x86_64-unknown-linux-musl-standalone.zip`
+      - **ARM64 hosts** (ARM Linux, Raspberry Pi, Apple Silicon Mac): `zenoh-ts-1.6.2-aarch64-unknown-linux-musl-standalone.zip`
 
    c. Extract to the correct directory structure:
       ```bash
       mkdir -p zenoh_plugins/lib
       cd zenoh_plugins/lib
       unzip ~/Downloads/zenoh-ts-1.6.2-*-standalone.zip
-      ls -la  # Verify libzenoh_plugin_remote_api.so (or .dylib) exists
+      ls -la  # Verify libzenoh_plugin_remote_api.so exists
       cd ../..
       ```
 
    **Platform Selection Guide**:
-   - The architecture must match your **Docker host**, not the container OS
-   - On Docker Desktop for Mac: Use the macOS plugin (even though the container is Linux)
-   - On Linux hosts: Use the Linux musl plugin
-   - When in doubt, use `uname -m` to check: x86_64 or aarch64/arm64
+   - Since the eclipse/zenoh container is Linux, always use `*-linux-musl-standalone.zip`
+   - Choose x86_64 or aarch64 based on your **host CPU architecture** (not OS)
+   - Intel/AMD processors: x86_64
+   - ARM processors (Apple Silicon, Raspberry Pi, ARM servers): aarch64
+   - Use `uname -m` to verify your architecture
 
 3. **Start the services**:
    ```bash
@@ -109,10 +113,12 @@ The plugin must be:
 4. Mounted into the container at `/root/.zenoh`
 
 **Platform Compatibility**:
-- The plugin runs on the Docker host, so choose the architecture that matches your host OS
-- Linux Docker hosts: Use `*-linux-musl-standalone.zip`
-- macOS Docker Desktop: Use `*-darwin-standalone.zip` (even though containers are Linux)
-- Check your architecture with `uname -m`: x86_64, aarch64, or arm64
+- The plugin must match the **container OS** (Linux) and **host architecture**
+- Since eclipse/zenoh is a Linux container, always use `*-linux-musl-standalone.zip`
+- Choose the architecture based on your host CPU:
+  - x86_64: Intel/AMD processors (most common)
+  - aarch64: ARM processors (Apple Silicon Macs, Raspberry Pi, ARM servers)
+- Verify with: `uname -m`
 
 This is the same approach used in the project's CI integration tests.
 

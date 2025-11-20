@@ -189,11 +189,14 @@ volumes:
 
    b. Navigate to version `1.6.2/` (must match the Zenoh router version)
 
-   c. Download the appropriate standalone build for your platform:
-      - **x86_64 Linux (most common)**: `zenoh-ts-1.6.2-x86_64-unknown-linux-musl-standalone.zip`
-      - **ARM64 Linux (Raspberry Pi, ARM servers)**: `zenoh-ts-1.6.2-aarch64-unknown-linux-musl-standalone.zip`
-      - **macOS Intel**: `zenoh-ts-1.6.2-x86_64-apple-darwin-standalone.zip`
-      - **macOS Apple Silicon**: `zenoh-ts-1.6.2-aarch64-apple-darwin-standalone.zip`
+   c. Download the appropriate standalone build for your **host architecture**:
+
+      **The plugin must match the container OS (Linux) and your host CPU architecture.**
+
+      Check your architecture with `uname -m` (returns `x86_64` or `aarch64`/`arm64`):
+
+      - **x86_64 hosts** (Intel/AMD Linux, Intel Mac): `zenoh-ts-1.6.2-x86_64-unknown-linux-musl-standalone.zip`
+      - **ARM64 hosts** (ARM Linux, Raspberry Pi, Apple Silicon Mac): `zenoh-ts-1.6.2-aarch64-unknown-linux-musl-standalone.zip`
 
    d. Extract the plugin to the correct location:
       ```bash
@@ -205,12 +208,12 @@ volumes:
 
       # Verify the plugin library file exists
       ls -la
-      # You should see: libzenoh_plugin_remote_api.so (Linux) or .dylib (macOS)
+      # You should see: libzenoh_plugin_remote_api.so
 
       cd ../..
       ```
 
-   **Important**: The plugin architecture must match your Docker host platform, not the container. Docker Desktop on Mac needs the macOS plugin, not Linux.
+   **Important**: Since the eclipse/zenoh container is Linux, always use the `*-linux-musl-standalone.zip` plugin. Choose x86_64 or aarch64 based on your host's CPU architecture.
 
 3. Start the services:
    ```bash
