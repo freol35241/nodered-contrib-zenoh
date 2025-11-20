@@ -109,6 +109,8 @@ jobs:
         docker exec zenoh-router sh -c "netstat -tlnp 2>/dev/null || ss -tlnp" | grep -E "(8000|10000|7447)" || echo "netstat/ss not available"
 
     - name: Run integration tests
+      env:
+        NODE_OPTIONS: "--experimental-wasm-modules --no-warnings"
       run: npm run test:integration
 
     - name: Show Zenoh logs on failure

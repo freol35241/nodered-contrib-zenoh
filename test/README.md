@@ -44,11 +44,13 @@ Integration tests verify end-to-end functionality with a real Zenoh router.
 
 **Run with:**
 ```bash
-npm run test:integration
+# WASM module support is required for zenoh-ts 1.6.2
+NODE_OPTIONS="--experimental-wasm-modules --no-warnings" npm run test:integration
 ```
 
 **Requirements:**
 - **Zenoh router running with remote-api plugin (WebSocket) on port 10000**
+- **Node.js with WASM module support** (requires `--experimental-wasm-modules` flag)
 
 **Important:** The zenoh-ts library requires the `remote-api` plugin to be enabled in the Zenoh router. This plugin provides WebSocket connectivity for browser and Node.js applications. The plugin must be the x86_64-unknown-linux-musl version for Docker compatibility.
 
@@ -61,8 +63,8 @@ The helper script automatically downloads the plugin and configures everything:
 # Start Zenoh router with remote-api plugin (auto-downloads if needed)
 ./test/start-zenoh-router.sh
 
-# Run integration tests
-npm run test:integration
+# Run integration tests (WASM support required)
+NODE_OPTIONS="--experimental-wasm-modules --no-warnings" npm run test:integration
 
 # Stop router when done
 docker stop zenoh-router && docker rm zenoh-router
@@ -96,8 +98,8 @@ docker run -d --name zenoh-router \
 # 3. Verify router and plugin are running
 docker logs zenoh-router
 
-# 4. Run integration tests
-npm run test:integration
+# 4. Run integration tests (WASM support required)
+NODE_OPTIONS="--experimental-wasm-modules --no-warnings" npm run test:integration
 
 # 5. Stop router when done
 docker stop zenoh-router && docker rm zenoh-router
@@ -118,7 +120,7 @@ docker stop zenoh-router && docker rm zenoh-router
    zenoh-bridge-remote-api --ws-port 10000
    ```
 
-3. Run tests: `npm run test:integration`
+3. Run tests: `NODE_OPTIONS="--experimental-wasm-modules --no-warnings" npm run test:integration`
 
 #### Option 4: Manual Installation with zenohd + plugin
 1. Download Zenoh router from https://github.com/eclipse-zenoh/zenoh/releases
@@ -143,7 +145,7 @@ docker stop zenoh-router && docker rm zenoh-router
    ```
 
 4. Start the router: `zenohd -c .github/zenoh-config.json5`
-5. Run tests: `npm run test:integration`
+5. Run tests: `NODE_OPTIONS="--experimental-wasm-modules --no-warnings" npm run test:integration`
 
 **Coverage:**
 - Put/Subscribe messaging
