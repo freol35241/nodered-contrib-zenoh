@@ -1,6 +1,6 @@
 {
   "name": "@freol35241/nodered-contrib-zenoh",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Node-RED nodes for Eclipse Zenoh - a pub/sub, query/queryable protocol that unifies data in motion, data at rest, and computational tasks",
   "scripts": {
     "test": "npm run test:unit",
