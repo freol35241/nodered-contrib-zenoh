@@ -68,13 +68,13 @@ module.exports = function(RED) {
                 if (msg.timeout !== undefined) {
                     const parsedMsgTimeout = typeof msg.timeout === 'number' ? msg.timeout : parseInt(msg.timeout);
                     const timeoutMs = (!isNaN(parsedMsgTimeout) && parsedMsgTimeout > 0) ? parsedMsgTimeout : 10000;
-                    options.timeout = { secs: 0, nanos: timeoutMs * 1000000 };
+                    options.timeout = timeoutMs;
                 } else if (node.timeout) {
                     // Ensure node.timeout is a valid number
                     const timeoutMs = (typeof node.timeout === 'number' && !isNaN(node.timeout) && node.timeout > 0)
                         ? node.timeout
                         : 10000;
-                    options.timeout = { secs: 0, nanos: timeoutMs * 1000000 };
+                    options.timeout = timeoutMs;
                 }
 
                 // Apply target: msg overrides config
