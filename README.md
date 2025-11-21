@@ -2,6 +2,8 @@
 
 Node-RED nodes for [Eclipse Zenoh](https://zenoh.io/) integration, providing seamless pub/sub and query/queryable functionality.
 
+https://flows.nodered.org/node/@freol35241/nodered-contrib-zenoh
+
 ## Overview
 
 This package provides Node-RED nodes to interact with Eclipse Zenoh, a "Zero Overhead Pub/sub, Store/Query, and Compute" protocol that unifies data in motion, data at rest, and computational tasks.
