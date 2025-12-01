@@ -103,6 +103,20 @@ describe('Zenoh Node Unit Tests', function() {
             });
         });
 
+        it('should be loaded with forceKeyExpr configuration', function(done) {
+            const flow = [
+                { id: 's1', type: 'zenoh-session', locator: 'ws://localhost:10000' },
+                { id: 'n1', type: 'zenoh-put', session: 's1', keyExpr: 'test/forced/key', forceKeyExpr: true, name: 'test-put-forced' }
+            ];
+            helper.load([sessionNode, putNode], flow, function() {
+                const n1 = helper.getNode('n1');
+                should(n1).have.property('name', 'test-put-forced');
+                should(n1).have.property('keyExpr', 'test/forced/key');
+                should(n1).have.property('forceKeyExpr', true);
+                done();
+            });
+        });
+
         it('should error without session configuration', function(done) {
             const flow = [
                 { id: 'n1', type: 'zenoh-put', keyExpr: 'test/key' }

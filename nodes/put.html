@@ -6,6 +6,7 @@
             name: { value: '' },
             session: { value: '', type: 'zenoh-session', required: true },
             keyExpr: { value: '' },
+            forceKeyExpr: { value: false },
             encoding: { value: '' },
             priority: { value: '' },
             congestionControl: { value: '' },
@@ -30,6 +31,12 @@
     <div class="form-row">
         <label for="node-input-keyExpr"><i class="fa fa-tag"></i> Key Expression</label>
         <input type="text" id="node-input-keyExpr" placeholder="demo/example/key">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-forceKeyExpr"><i class="fa fa-lock"></i> Force Key Expression</label>
+        <input type="checkbox" id="node-input-forceKeyExpr" style="display:inline-block; width:auto; vertical-align:baseline;">
+        <label for="node-input-forceKeyExpr" style="width:auto; margin-left:5px;">Always use configured key expression (ignore msg.keyExpr and msg.topic)</label>
     </div>
 
     <div class="form-row">
@@ -133,6 +140,27 @@
     <h3>Details</h3>
     <p>Publishes data to the specified key expression. The key expression can be set in the configuration
     or provided via <code>msg.keyExpr</code> or <code>msg.topic</code>.</p>
+
+    <h4>Key Expression Configuration</h4>
+    <p>The node determines which key expression to use based on the following priority:</p>
+    <ul>
+        <li><b>Default behavior (Force Key Expression unchecked):</b>
+            <ol>
+                <li>Use <code>msg.keyExpr</code> if present in the incoming message</li>
+                <li>Otherwise, use <code>msg.topic</code> if present in the incoming message</li>
+                <li>Otherwise, use the configured <b>Key Expression</b> from the node settings</li>
+            </ol>
+        </li>
+        <li><b>Forced behavior (Force Key Expression checked):</b>
+            <ul>
+                <li>Always use the configured <b>Key Expression</b> from the node settings</li>
+                <li>Ignore <code>msg.keyExpr</code> and <code>msg.topic</code> even if present</li>
+                <li>Useful when you want to ensure a fixed key expression regardless of incoming message properties</li>
+            </ul>
+        </li>
+    </ul>
+    <p><b>Note:</b> If no key expression is available (neither configured nor in the message when force is off),
+    the node will return an error.</p>
 
     <h4>Quality of Service</h4>
     <p>Configure default QoS parameters in the node settings. All settings can be overridden by message properties:</p>

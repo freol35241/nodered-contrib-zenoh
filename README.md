@@ -335,15 +335,36 @@ Publishes data to a Zenoh key expression.
 **Configuration:**
 - **Session**: The Zenoh session configuration
 - **Key Expression**: Default key expression (can be overridden by message)
+- **Force Key Expression**: When checked, always use the configured key expression and ignore `msg.keyExpr` and `msg.topic`
+- **Encoding**: Default encoding type for payloads
+- **Priority**: Default message priority (1-7)
+- **Congestion Control**: How to handle network congestion (Drop or Block)
+- **Reliability**: Best Effort or Reliable delivery
+- **Express**: Enable express mode for lower latency
+- **Allowed Destination**: Restrict message delivery scope
 - **Name**: Optional node name
+
+**Key Expression Behavior:**
+
+The node determines which key expression to use with the following logic:
+
+- **Default (Force Key Expression unchecked):**
+  1. Use `msg.keyExpr` if present
+  2. Otherwise, use `msg.topic` if present
+  3. Otherwise, use the configured Key Expression
+
+- **Forced (Force Key Expression checked):**
+  - Always use the configured Key Expression
+  - Ignore `msg.keyExpr` and `msg.topic` even if present
+  - Useful for ensuring a fixed key expression regardless of message content
 
 **Inputs:**
 
 ```javascript
 {
   payload: <any-data>,                 // Required: data to publish
-  keyExpr: "demo/example/key",         // Optional: overrides configured key
-  topic: "demo/example/key",           // Alternative to keyExpr
+  keyExpr: "demo/example/key",         // Optional: overrides configured key (unless forced)
+  topic: "demo/example/key",           // Alternative to keyExpr (unless forced)
   encoding: "application/json",        // Optional
   priority: 5,                         // Optional
   congestionControl: 0,                // Optional
