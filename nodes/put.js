@@ -4,6 +4,7 @@ module.exports = function(RED) {
         const node = this;
 
         this.keyExpr = config.keyExpr;
+        this.forceKeyExpr = config.forceKeyExpr;
         this.encoding = config.encoding;
         this.priority = config.priority;
         this.congestionControl = config.congestionControl;
@@ -24,7 +25,16 @@ module.exports = function(RED) {
             try {
                 const session = await node.sessionConfig.getSession();
 
-                const keyExpr = msg.keyExpr || msg.topic || node.keyExpr;
+                // Determine key expression based on forceKeyExpr setting
+                let keyExpr;
+                if (node.forceKeyExpr) {
+                    // Force mode: always use configured key expression
+                    keyExpr = node.keyExpr;
+                } else {
+                    // Default mode: msg.keyExpr > msg.topic > configured key expression
+                    keyExpr = msg.keyExpr || msg.topic || node.keyExpr;
+                }
+
                 if (!keyExpr) {
                     done(new Error('No key expression provided'));
                     return;

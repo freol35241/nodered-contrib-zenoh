@@ -258,6 +258,120 @@ describe('Zenoh Integration Tests', function() {
                 }, 2000);
             });
         });
+
+        it('should force configured keyExpr when forceKeyExpr is true', function(done) {
+            const flow = [
+                {
+                    id: 'session1',
+                    type: 'zenoh-session',
+                    locator: 'ws://localhost:10000'
+                },
+                {
+                    id: 'sub1',
+                    type: 'zenoh-subscribe',
+                    name: 'test-subscribe',
+                    session: 'session1',
+                    keyExpr: 'test/integration/forced',
+                    wires: [['helper1']]
+                },
+                {
+                    id: 'put1',
+                    type: 'zenoh-put',
+                    name: 'test-put',
+                    session: 'session1',
+                    keyExpr: 'test/integration/forced',
+                    forceKeyExpr: true
+                },
+                { id: 'helper1', type: 'helper' }
+            ];
+
+            helper.load([sessionNode, subscribeNode, putNode], flow, function() {
+                const helper1 = helper.getNode('helper1');
+                const put1 = helper.getNode('put1');
+
+                let messageReceived = false;
+
+                helper1.on('input', function(msg) {
+                    try {
+                        if (!messageReceived) {
+                            messageReceived = true;
+                            // Should receive message on forced key, not on the topic in msg
+                            msg.should.have.property('topic', 'test/integration/forced');
+                            Buffer.isBuffer(msg.payload).should.be.true();
+                            msg.payload.toString('utf8').should.equal('forced key test');
+                            done();
+                        }
+                    } catch (err) {
+                        done(err);
+                    }
+                });
+
+                setTimeout(function() {
+                    // Try to override with msg.topic, but it should be ignored
+                    put1.receive({
+                        payload: 'forced key test',
+                        topic: 'test/integration/should-be-ignored'
+                    });
+                }, 2000);
+            });
+        });
+
+        it('should force configured keyExpr even with msg.keyExpr when forceKeyExpr is true', function(done) {
+            const flow = [
+                {
+                    id: 'session1',
+                    type: 'zenoh-session',
+                    locator: 'ws://localhost:10000'
+                },
+                {
+                    id: 'sub1',
+                    type: 'zenoh-subscribe',
+                    name: 'test-subscribe',
+                    session: 'session1',
+                    keyExpr: 'test/integration/forced2',
+                    wires: [['helper1']]
+                },
+                {
+                    id: 'put1',
+                    type: 'zenoh-put',
+                    name: 'test-put',
+                    session: 'session1',
+                    keyExpr: 'test/integration/forced2',
+                    forceKeyExpr: true
+                },
+                { id: 'helper1', type: 'helper' }
+            ];
+
+            helper.load([sessionNode, subscribeNode, putNode], flow, function() {
+                const helper1 = helper.getNode('helper1');
+                const put1 = helper.getNode('put1');
+
+                let messageReceived = false;
+
+                helper1.on('input', function(msg) {
+                    try {
+                        if (!messageReceived) {
+                            messageReceived = true;
+                            // Should receive message on forced key, not on msg.keyExpr
+                            msg.should.have.property('topic', 'test/integration/forced2');
+                            Buffer.isBuffer(msg.payload).should.be.true();
+                            msg.payload.toString('utf8').should.equal('forced keyExpr test');
+                            done();
+                        }
+                    } catch (err) {
+                        done(err);
+                    }
+                });
+
+                setTimeout(function() {
+                    // Try to override with msg.keyExpr, but it should be ignored
+                    put1.receive({
+                        payload: 'forced keyExpr test',
+                        keyExpr: 'test/integration/another-ignored-key'
+                    });
+                }, 2000);
+            });
+        });
     });
 
     describe('Query and Queryable Integration', function() {
