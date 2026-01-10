@@ -45,7 +45,7 @@ module.exports = function(RED) {
                 node.status({ fill: 'blue', shape: 'dot', text: 'querying' });
 
                 // Query liveliness tokens using standard get() with @/liveliness/ prefix
-                // This is the recommended way to query liveliness in Zenoh
+                // This is the traditional and reliable way to query liveliness in Zenoh
                 const livelinessKeyExpr = '@/liveliness/' + keyExpr;
                 const receiver = await session.get(livelinessKeyExpr, options);
 
