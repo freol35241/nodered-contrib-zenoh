@@ -1,0 +1,80 @@
+<script type="text/javascript">
+    RED.nodes.registerType('zenoh-liveliness-subscribe', {
+        category: 'zenoh',
+        color: '#a6bbcf',
+        defaults: {
+            name: { value: '' },
+            session: { value: '', type: 'zenoh-session', required: true },
+            keyExpr: { value: '', required: true },
+            history: { value: true }
+        },
+        inputs: 0,
+        outputs: 1,
+        icon: 'font-awesome/fa-heartbeat',
+        label: function() {
+            return this.name || (this.keyExpr ? 'Liveliness Sub: ' + this.keyExpr : 'zenoh-liveliness-subscribe');
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="zenoh-liveliness-subscribe">
+    <div class="form-row">
+        <label for="node-input-session"><i class="fa fa-server"></i> Session</label>
+        <input type="text" id="node-input-session">
+    </div>
+    <div class="form-row">
+        <label for="node-input-keyExpr"><i class="fa fa-tag"></i> Key Expression</label>
+        <input type="text" id="node-input-keyExpr" placeholder="demo/liveliness/**">
+    </div>
+    <div class="form-row">
+        <label for="node-input-history"><i class="fa fa-history"></i> History</label>
+        <input type="checkbox" id="node-input-history" style="display:inline-block; width:auto; vertical-align:baseline;">
+        <label for="node-input-history" style="width:auto; margin-left:5px;">Include historical tokens (tokens declared before subscription)</label>
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="zenoh-liveliness-subscribe">
+    <p>Subscribes to Zenoh liveliness changes and outputs when tokens appear or disappear.</p>
+
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">object</span></dt>
+        <dd>Object with <code>alive</code> (boolean) and <code>keyExpr</code> (string) properties.</dd>
+
+        <dt>topic <span class="property-type">string</span></dt>
+        <dd>The key expression of the liveliness token that changed.</dd>
+
+        <dt>zenoh <span class="property-type">object</span></dt>
+        <dd>Zenoh metadata including kind (0=PUT/alive, 1=DELETE/gone), timestamp, and type.</dd>
+    </dl>
+
+    <h3>Details</h3>
+    <p>This node monitors liveliness tokens on the Zenoh network and outputs messages when:</p>
+    <ul>
+        <li>A token is declared (appears) - <code>payload.alive = true</code>, <code>zenoh.kind = 0</code> (PUT)</li>
+        <li>A token is undeclared (disappears) - <code>payload.alive = false</code>, <code>zenoh.kind = 1</code> (DELETE)</li>
+    </ul>
+
+    <h4>Key Expression Wildcards</h4>
+    <p>The key expression supports wildcards to monitor multiple tokens:</p>
+    <ul>
+        <li><code>*</code> - matches a single chunk</li>
+        <li><code>**</code> - matches multiple chunks</li>
+    </ul>
+    <p>Example: <code>demo/liveliness/**</code> matches all tokens under <code>demo/liveliness/</code></p>
+
+    <h4>History</h4>
+    <p>When <b>History</b> is enabled (default), the subscriber receives PUT samples for all tokens that were already declared before this subscription started.</p>
+    <p>This allows you to get the current state of active tokens immediately upon subscription.</p>
+    <p>When disabled, you only receive changes that occur after the subscription is created.</p>
+
+    <h4>Sample Kinds</h4>
+    <ul>
+        <li><b>PUT (kind = 0)</b>: Token is alive/declared</li>
+        <li><b>DELETE (kind = 1)</b>: Token is gone/undeclared</li>
+    </ul>
+</script>

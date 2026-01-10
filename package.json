@@ -35,7 +35,10 @@
       "zenoh-subscribe": "nodes/subscribe.js",
       "zenoh-put": "nodes/put.js",
       "zenoh-query": "nodes/query.js",
-      "zenoh-queryable": "nodes/queryable.js"
+      "zenoh-queryable": "nodes/queryable.js",
+      "zenoh-liveliness-token": "nodes/liveliness-token.js",
+      "zenoh-liveliness-subscribe": "nodes/liveliness-subscribe.js",
+      "zenoh-liveliness-get": "nodes/liveliness-get.js"
     }
   },
   "dependencies": {

@@ -5,6 +5,9 @@ const subscribeNode = require('../nodes/subscribe.js');
 const putNode = require('../nodes/put.js');
 const queryNode = require('../nodes/query.js');
 const queryableNode = require('../nodes/queryable.js');
+const livelinessTokenNode = require('../nodes/liveliness-token.js');
+const livelinessSubscribeNode = require('../nodes/liveliness-subscribe.js');
+const livelinessGetNode = require('../nodes/liveliness-get.js');
 
 helper.init(require.resolve('node-red'));
 
@@ -619,6 +622,272 @@ describe('Zenoh Integration Tests', function() {
                 setTimeout(function() {
                     put1.receive({ payload: 'wildcard test' });
                 }, 2000);
+            });
+        });
+    });
+
+    describe('Liveliness Token and Subscribe Integration', function() {
+        it('should declare token and receive liveliness update', function(done) {
+            const flow = [
+                {
+                    id: 'session1',
+                    type: 'zenoh-session',
+                    locator: 'ws://localhost:10000'
+                },
+                {
+                    id: 'token1',
+                    type: 'zenoh-liveliness-token',
+                    name: 'test-token',
+                    session: 'session1',
+                    keyExpr: 'test/liveliness/token1',
+                    autoStart: false
+                },
+                {
+                    id: 'sub1',
+                    type: 'zenoh-liveliness-subscribe',
+                    name: 'test-liveliness-sub',
+                    session: 'session1',
+                    keyExpr: 'test/liveliness/**',
+                    history: false,
+                    wires: [['helper1']]
+                },
+                { id: 'helper1', type: 'helper' }
+            ];
+
+            helper.load([sessionNode, livelinessTokenNode, livelinessSubscribeNode], flow, function(err) {
+                if (err) return done(err);
+
+                const helper1 = helper.getNode('helper1');
+                const token1 = helper.getNode('token1');
+
+                let messageReceived = false;
+                let testTimeout = null;
+
+                helper1.on('input', function(msg) {
+                    try {
+                        if (!messageReceived) {
+                            messageReceived = true;
+                            clearTimeout(testTimeout);
+                            msg.should.have.property('payload');
+                            msg.payload.should.have.property('alive', true);
+                            msg.payload.should.have.property('keyExpr', 'test/liveliness/token1');
+                            msg.should.have.property('topic', 'test/liveliness/token1');
+                            msg.should.have.property('zenoh');
+                            msg.zenoh.should.have.property('kind', 0); // PUT = alive
+                            done();
+                        }
+                    } catch (err) {
+                        done(err);
+                    }
+                });
+
+                testTimeout = setTimeout(function() {
+                    if (!messageReceived) {
+                        messageReceived = true;
+                        done(new Error('Test timeout: No liveliness update received'));
+                    }
+                }, 10000);
+
+                // Wait for subscriber to be ready, then declare token
+                setTimeout(function() {
+                    token1.receive({ action: 'declare' });
+                }, 2000);
+            });
+        });
+
+        it('should detect token undeclare', function(done) {
+            const flow = [
+                {
+                    id: 'session1',
+                    type: 'zenoh-session',
+                    locator: 'ws://localhost:10000'
+                },
+                {
+                    id: 'token1',
+                    type: 'zenoh-liveliness-token',
+                    name: 'test-token',
+                    session: 'session1',
+                    keyExpr: 'test/liveliness/token2',
+                    autoStart: false
+                },
+                {
+                    id: 'sub1',
+                    type: 'zenoh-liveliness-subscribe',
+                    name: 'test-liveliness-sub',
+                    session: 'session1',
+                    keyExpr: 'test/liveliness/**',
+                    history: false,
+                    wires: [['helper1']]
+                },
+                { id: 'helper1', type: 'helper' }
+            ];
+
+            helper.load([sessionNode, livelinessTokenNode, livelinessSubscribeNode], flow, function(err) {
+                if (err) return done(err);
+
+                const helper1 = helper.getNode('helper1');
+                const token1 = helper.getNode('token1');
+
+                let messagesReceived = 0;
+                let testTimeout = null;
+
+                helper1.on('input', function(msg) {
+                    try {
+                        messagesReceived++;
+
+                        if (messagesReceived === 1) {
+                            // First message: token declared (alive)
+                            msg.payload.should.have.property('alive', true);
+                            msg.zenoh.should.have.property('kind', 0); // PUT
+
+                            // Wait a bit then undeclare the token
+                            setTimeout(function() {
+                                token1.receive({ action: 'undeclare' });
+                            }, 500);
+                        } else if (messagesReceived === 2) {
+                            // Second message: token undeclared (gone)
+                            clearTimeout(testTimeout);
+                            msg.payload.should.have.property('alive', false);
+                            msg.payload.should.have.property('keyExpr', 'test/liveliness/token2');
+                            msg.zenoh.should.have.property('kind', 1); // DELETE
+                            done();
+                        }
+                    } catch (err) {
+                        done(err);
+                    }
+                });
+
+                testTimeout = setTimeout(function() {
+                    if (messagesReceived < 2) {
+                        done(new Error('Test timeout: Did not receive undeclare event (received ' + messagesReceived + ' messages)'));
+                    }
+                }, 10000);
+
+                // Wait for subscriber to be ready, then declare token
+                setTimeout(function() {
+                    token1.receive({ action: 'declare' });
+                }, 2000);
+            });
+        });
+    });
+
+    describe('Liveliness Get Integration', function() {
+        it('should query and find alive tokens', function(done) {
+            const flow = [
+                {
+                    id: 'session1',
+                    type: 'zenoh-session',
+                    locator: 'ws://localhost:10000'
+                },
+                {
+                    id: 'token1',
+                    type: 'zenoh-liveliness-token',
+                    name: 'test-token1',
+                    session: 'session1',
+                    keyExpr: 'test/liveliness/get/token1',
+                    autoStart: true
+                },
+                {
+                    id: 'token2',
+                    type: 'zenoh-liveliness-token',
+                    name: 'test-token2',
+                    session: 'session1',
+                    keyExpr: 'test/liveliness/get/token2',
+                    autoStart: true
+                },
+                {
+                    id: 'get1',
+                    type: 'zenoh-liveliness-get',
+                    name: 'test-liveliness-get',
+                    session: 'session1',
+                    keyExpr: 'test/liveliness/get/**',
+                    timeout: 5000,
+                    wires: [['helper1']]
+                },
+                { id: 'helper1', type: 'helper' }
+            ];
+
+            helper.load([sessionNode, livelinessTokenNode, livelinessGetNode], flow, function(err) {
+                if (err) return done(err);
+
+                const helper1 = helper.getNode('helper1');
+                const get1 = helper.getNode('get1');
+
+                let messageReceived = false;
+
+                helper1.on('input', function(msg) {
+                    try {
+                        if (!messageReceived) {
+                            messageReceived = true;
+                            msg.should.have.property('payload');
+                            msg.payload.should.be.an.Array();
+                            msg.payload.length.should.be.greaterThanOrEqual(2);
+                            msg.should.have.property('count');
+                            msg.count.should.be.greaterThanOrEqual(2);
+
+                            // Check that both tokens are in the results
+                            const keyExprs = msg.payload.map(t => t.keyExpr);
+                            keyExprs.should.containEql('test/liveliness/get/token1');
+                            keyExprs.should.containEql('test/liveliness/get/token2');
+                            done();
+                        }
+                    } catch (err) {
+                        done(err);
+                    }
+                });
+
+                // Wait for tokens to be declared, then query
+                setTimeout(function() {
+                    get1.receive({});
+                }, 2000);
+            });
+        });
+
+        it('should return empty array when no tokens match', function(done) {
+            const flow = [
+                {
+                    id: 'session1',
+                    type: 'zenoh-session',
+                    locator: 'ws://localhost:10000'
+                },
+                {
+                    id: 'get1',
+                    type: 'zenoh-liveliness-get',
+                    name: 'test-liveliness-get',
+                    session: 'session1',
+                    keyExpr: 'test/liveliness/nonexistent/**',
+                    timeout: 2000,
+                    wires: [['helper1']]
+                },
+                { id: 'helper1', type: 'helper' }
+            ];
+
+            helper.load([sessionNode, livelinessGetNode], flow, function(err) {
+                if (err) return done(err);
+
+                const helper1 = helper.getNode('helper1');
+                const get1 = helper.getNode('get1');
+
+                let messageReceived = false;
+
+                helper1.on('input', function(msg) {
+                    try {
+                        if (!messageReceived) {
+                            messageReceived = true;
+                            msg.should.have.property('payload');
+                            msg.payload.should.be.an.Array();
+                            msg.payload.length.should.equal(0);
+                            msg.should.have.property('count', 0);
+                            done();
+                        }
+                    } catch (err) {
+                        done(err);
+                    }
+                });
+
+                setTimeout(function() {
+                    get1.receive({});
+                }, 1000);
             });
         });
     });

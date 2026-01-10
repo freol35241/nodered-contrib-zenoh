@@ -1,0 +1,92 @@
+<script type="text/javascript">
+    RED.nodes.registerType('zenoh-liveliness-get', {
+        category: 'zenoh',
+        color: '#a6bbcf',
+        defaults: {
+            name: { value: '' },
+            session: { value: '', type: 'zenoh-session', required: true },
+            keyExpr: { value: '' },
+            timeout: { value: 10000, validate: RED.validators.number() }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: 'font-awesome/fa-heartbeat',
+        label: function() {
+            return this.name || (this.keyExpr ? 'Liveliness Get: ' + this.keyExpr : 'zenoh-liveliness-get');
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="zenoh-liveliness-get">
+    <div class="form-row">
+        <label for="node-input-session"><i class="fa fa-server"></i> Session</label>
+        <input type="text" id="node-input-session">
+    </div>
+    <div class="form-row">
+        <label for="node-input-keyExpr"><i class="fa fa-tag"></i> Key Expression</label>
+        <input type="text" id="node-input-keyExpr" placeholder="demo/liveliness/**">
+    </div>
+    <div class="form-row">
+        <label for="node-input-timeout"><i class="fa fa-clock-o"></i> Timeout (ms)</label>
+        <input type="number" id="node-input-timeout" placeholder="10000">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="zenoh-liveliness-get">
+    <p>Queries currently alive Zenoh liveliness tokens (one-time snapshot).</p>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt class="optional">keyExpr <span class="property-type">string</span></dt>
+        <dd>The key expression to query. Overrides configured key expression.</dd>
+
+        <dt class="optional">topic <span class="property-type">string</span></dt>
+        <dd>Alternative to keyExpr.</dd>
+
+        <dt class="optional">timeout <span class="property-type">number</span></dt>
+        <dd>Timeout in milliseconds for the query. Overrides configured timeout.</dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">array</span></dt>
+        <dd>Array of token objects. Each token contains keyExpr, topic, and optionally timestamp.</dd>
+
+        <dt>count <span class="property-type">number</span></dt>
+        <dd>The number of alive tokens found.</dd>
+    </dl>
+
+    <h3>Details</h3>
+    <p>This node performs a one-time query to discover which liveliness tokens are currently alive on the Zenoh network.</p>
+    <p>Unlike the liveliness subscribe node which continuously monitors changes, this node provides a snapshot of the current state.</p>
+
+    <h4>Use Cases</h4>
+    <ul>
+        <li>Discovering available services or peers at a specific moment</li>
+        <li>Health checks to see which components are currently active</li>
+        <li>Initial state discovery before subscribing to changes</li>
+    </ul>
+
+    <h4>Key Expression Wildcards</h4>
+    <p>The key expression supports wildcards to query multiple tokens:</p>
+    <ul>
+        <li><code>*</code> - matches a single chunk</li>
+        <li><code>**</code> - matches multiple chunks</li>
+    </ul>
+    <p>Example: <code>demo/liveliness/**</code> queries all tokens under <code>demo/liveliness/</code></p>
+
+    <h4>Timeout</h4>
+    <p>The timeout (default 10000ms) determines how long to wait for replies.</p>
+    <p>If no tokens match the key expression, an empty array is returned after the timeout expires.</p>
+
+    <h4>Message Overrides</h4>
+    <p>Message properties override node configuration:</p>
+    <ul>
+        <li><code>msg.keyExpr</code> or <code>msg.topic</code> - Override key expression</li>
+        <li><code>msg.timeout</code> - Override timeout duration</li>
+    </ul>
+</script>
