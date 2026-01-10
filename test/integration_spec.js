@@ -837,9 +837,10 @@ describe('Zenoh Integration Tests', function() {
                 });
 
                 // Wait for tokens to be declared, then query
+                // Needs longer delay to ensure tokens are fully registered in Zenoh
                 setTimeout(function() {
                     get1.receive({});
-                }, 2000);
+                }, 4000);
             });
         });
 
