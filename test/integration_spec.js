@@ -774,8 +774,15 @@ describe('Zenoh Integration Tests', function() {
     describe('Liveliness Get Integration', function() {
         it('should query and find alive tokens', function(done) {
             const flow = [
+                // Session for declaring tokens
                 {
                     id: 'session1',
+                    type: 'zenoh-session',
+                    locator: 'ws://localhost:10000'
+                },
+                // Session for querying (following zenoh-ts test pattern)
+                {
+                    id: 'session2',
                     type: 'zenoh-session',
                     locator: 'ws://localhost:10000'
                 },
@@ -785,7 +792,7 @@ describe('Zenoh Integration Tests', function() {
                     name: 'test-token1',
                     session: 'session1',
                     keyExpr: 'test/liveliness/get/token1',
-                    autoStart: true
+                    autoStart: false
                 },
                 {
                     id: 'token2',
@@ -793,13 +800,13 @@ describe('Zenoh Integration Tests', function() {
                     name: 'test-token2',
                     session: 'session1',
                     keyExpr: 'test/liveliness/get/token2',
-                    autoStart: true
+                    autoStart: false
                 },
                 {
                     id: 'get1',
                     type: 'zenoh-liveliness-get',
                     name: 'test-liveliness-get',
-                    session: 'session1',
+                    session: 'session2',
                     keyExpr: 'test/liveliness/get/**',
                     timeout: 5000,
                     wires: [['helper1']]
@@ -812,6 +819,8 @@ describe('Zenoh Integration Tests', function() {
 
                 const helper1 = helper.getNode('helper1');
                 const get1 = helper.getNode('get1');
+                const token1 = helper.getNode('token1');
+                const token2 = helper.getNode('token2');
 
                 let messageReceived = false;
 
@@ -836,11 +845,21 @@ describe('Zenoh Integration Tests', function() {
                     }
                 });
 
-                // Wait for tokens to be declared, then query
-                // Needs longer delay to ensure tokens are fully registered in Zenoh
+                // Follow zenoh-ts test pattern:
+                // 1. Wait for sessions to be ready (1000ms)
+                // 2. Declare tokens
+                // 3. Wait for tokens to propagate (500ms)
+                // 4. Query for tokens
                 setTimeout(function() {
-                    get1.receive({});
-                }, 4000);
+                    // Declare both tokens
+                    token1.receive({ action: 'declare' });
+                    token2.receive({ action: 'declare' });
+
+                    // Wait 500ms for tokens to propagate, then query
+                    setTimeout(function() {
+                        get1.receive({});
+                    }, 500);
+                }, 1000);
             });
         });
 
