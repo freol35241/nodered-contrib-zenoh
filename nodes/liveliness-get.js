@@ -44,7 +44,10 @@ module.exports = function(RED) {
 
                 node.status({ fill: 'blue', shape: 'dot', text: 'querying' });
 
-                const receiver = await session.liveliness().get(keyExpr, options);
+                // Query liveliness tokens using standard get() with @/liveliness/ prefix
+                // This is the recommended way to query liveliness in Zenoh
+                const livelinessKeyExpr = '@/liveliness/' + keyExpr;
+                const receiver = await session.get(livelinessKeyExpr, options);
 
                 if (!receiver) {
                     node.status({ fill: 'yellow', shape: 'ring', text: 'no receiver' });
@@ -62,8 +65,14 @@ module.exports = function(RED) {
                         // Liveliness get returns Reply objects, extract the Sample
                         const result = reply.result();
 
-                        if (result && result.constructor.name === 'Sample') {
-                            const tokenKeyExpr = result.keyexpr().toString();
+                        if (result.constructor.name === 'Sample') {
+                            let tokenKeyExpr = result.keyexpr().toString();
+
+                            // Strip the @/liveliness/ prefix to get the actual token key expression
+                            const livelinessPrefix = '@/liveliness/';
+                            if (tokenKeyExpr.startsWith(livelinessPrefix)) {
+                                tokenKeyExpr = tokenKeyExpr.substring(livelinessPrefix.length);
+                            }
 
                             const tokenInfo = {
                                 keyExpr: tokenKeyExpr,
