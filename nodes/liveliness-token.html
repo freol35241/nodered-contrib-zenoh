@@ -1,0 +1,78 @@
+<script type="text/javascript">
+    RED.nodes.registerType('zenoh-liveliness-token', {
+        category: 'zenoh',
+        color: '#a6bbcf',
+        defaults: {
+            name: { value: '' },
+            session: { value: '', type: 'zenoh-session', required: true },
+            keyExpr: { value: '', required: true },
+            autoStart: { value: true }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: 'font-awesome/fa-heartbeat',
+        label: function() {
+            return this.name || (this.keyExpr ? 'Liveliness: ' + this.keyExpr : 'zenoh-liveliness-token');
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="zenoh-liveliness-token">
+    <div class="form-row">
+        <label for="node-input-session"><i class="fa fa-server"></i> Session</label>
+        <input type="text" id="node-input-session">
+    </div>
+    <div class="form-row">
+        <label for="node-input-keyExpr"><i class="fa fa-tag"></i> Key Expression</label>
+        <input type="text" id="node-input-keyExpr" placeholder="demo/liveliness/my-token">
+    </div>
+    <div class="form-row">
+        <label for="node-input-autoStart"><i class="fa fa-play"></i> Auto-start</label>
+        <input type="checkbox" id="node-input-autoStart" style="display:inline-block; width:auto; vertical-align:baseline;">
+        <label for="node-input-autoStart" style="width:auto; margin-left:5px;">Automatically declare token on startup</label>
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="zenoh-liveliness-token">
+    <p>Declares a Zenoh liveliness token indicating presence on the network.</p>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt class="optional">action <span class="property-type">string</span></dt>
+        <dd>Control action: "declare" to create token, "undeclare" to remove token.</dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">string</span></dt>
+        <dd>Status message: "declared" or "undeclared".</dd>
+
+        <dt>topic <span class="property-type">string</span></dt>
+        <dd>The key expression of the liveliness token.</dd>
+
+        <dt>zenoh <span class="property-type">object</span></dt>
+        <dd>Zenoh metadata including keyExpr and type.</dd>
+    </dl>
+
+    <h3>Details</h3>
+    <p>A liveliness token indicates that this node is active and present on the Zenoh network.</p>
+    <p>Other nodes can subscribe to liveliness changes or query for active tokens to detect presence.</p>
+
+    <h4>Auto-start</h4>
+    <p>When <b>Auto-start</b> is enabled (default), the token is automatically declared when the node starts.</p>
+    <p>When disabled, you must send a message with <code>msg.action = "declare"</code> to activate the token.</p>
+
+    <h4>Manual Control</h4>
+    <p>Send a message with:</p>
+    <ul>
+        <li><code>msg.action = "declare"</code> - Declare the liveliness token</li>
+        <li><code>msg.action = "undeclare"</code> - Remove the liveliness token</li>
+    </ul>
+
+    <h4>Cleanup</h4>
+    <p>The token is automatically undeclared when the node is stopped or redeployed.</p>
+</script>

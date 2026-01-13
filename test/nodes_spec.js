@@ -5,6 +5,9 @@ const subscribeNode = require('../nodes/subscribe.js');
 const putNode = require('../nodes/put.js');
 const queryNode = require('../nodes/query.js');
 const queryableNode = require('../nodes/queryable.js');
+const livelinessTokenNode = require('../nodes/liveliness-token.js');
+const livelinessSubscribeNode = require('../nodes/liveliness-subscribe.js');
+const livelinessGetNode = require('../nodes/liveliness-get.js');
 
 helper.init(require.resolve('node-red'));
 
@@ -213,6 +216,151 @@ describe('Zenoh Node Unit Tests', function() {
                 setImmediate(function() {
                     const logEvents = helper.log().args.filter(function(evt) {
                         return evt[0].type === 'zenoh-queryable';
+                    });
+                    logEvents.should.not.be.empty();
+                    logEvents[logEvents.length - 1][0].should.have.property('level', helper.log().ERROR);
+                    logEvents[logEvents.length - 1][0].should.have.property('msg', 'No session configuration provided');
+                    done();
+                });
+            });
+        });
+    });
+
+    describe('zenoh-liveliness-token node', function() {
+        it('should be loaded with correct configuration', function(done) {
+            const flow = [
+                { id: 's1', type: 'zenoh-session', locator: 'ws://localhost:10000' },
+                { id: 'n1', type: 'zenoh-liveliness-token', session: 's1', keyExpr: 'test/liveliness/token', autoStart: true, name: 'test-token' }
+            ];
+            helper.load([sessionNode, livelinessTokenNode], flow, function() {
+                const n1 = helper.getNode('n1');
+                should(n1).have.property('name', 'test-token');
+                should(n1).have.property('keyExpr', 'test/liveliness/token');
+                should(n1).have.property('autoStart', true);
+                done();
+            });
+        });
+
+        it('should use default autoStart value', function(done) {
+            const flow = [
+                { id: 's1', type: 'zenoh-session', locator: 'ws://localhost:10000' },
+                { id: 'n1', type: 'zenoh-liveliness-token', session: 's1', keyExpr: 'test/liveliness/token' }
+            ];
+            helper.load([sessionNode, livelinessTokenNode], flow, function() {
+                const n1 = helper.getNode('n1');
+                should(n1).have.property('autoStart', true);
+                done();
+            });
+        });
+
+        it('should error without session configuration', function(done) {
+            const flow = [
+                { id: 'n1', type: 'zenoh-liveliness-token', keyExpr: 'test/liveliness/token' }
+            ];
+            helper.load(livelinessTokenNode, flow, function() {
+                // Give the node time to log the error
+                setImmediate(function() {
+                    const logEvents = helper.log().args.filter(function(evt) {
+                        return evt[0].type === 'zenoh-liveliness-token';
+                    });
+                    logEvents.should.not.be.empty();
+                    logEvents[logEvents.length - 1][0].should.have.property('level', helper.log().ERROR);
+                    logEvents[logEvents.length - 1][0].should.have.property('msg', 'No session configuration provided');
+                    done();
+                });
+            });
+        });
+    });
+
+    describe('zenoh-liveliness-subscribe node', function() {
+        it('should be loaded with correct configuration', function(done) {
+            const flow = [
+                { id: 's1', type: 'zenoh-session', locator: 'ws://localhost:10000' },
+                { id: 'n1', type: 'zenoh-liveliness-subscribe', session: 's1', keyExpr: 'test/liveliness/**', history: true, name: 'test-liveliness-sub' }
+            ];
+            helper.load([sessionNode, livelinessSubscribeNode], flow, function() {
+                const n1 = helper.getNode('n1');
+                should(n1).have.property('name', 'test-liveliness-sub');
+                should(n1).have.property('keyExpr', 'test/liveliness/**');
+                should(n1).have.property('history', true);
+                done();
+            });
+        });
+
+        it('should use default history value', function(done) {
+            const flow = [
+                { id: 's1', type: 'zenoh-session', locator: 'ws://localhost:10000' },
+                { id: 'n1', type: 'zenoh-liveliness-subscribe', session: 's1', keyExpr: 'test/liveliness/**' }
+            ];
+            helper.load([sessionNode, livelinessSubscribeNode], flow, function() {
+                const n1 = helper.getNode('n1');
+                should(n1).have.property('history', true);
+                done();
+            });
+        });
+
+        it('should error without session configuration', function(done) {
+            const flow = [
+                { id: 'n1', type: 'zenoh-liveliness-subscribe', keyExpr: 'test/liveliness/**' }
+            ];
+            helper.load(livelinessSubscribeNode, flow, function() {
+                // Give the node time to log the error
+                setImmediate(function() {
+                    const logEvents = helper.log().args.filter(function(evt) {
+                        return evt[0].type === 'zenoh-liveliness-subscribe';
+                    });
+                    logEvents.should.not.be.empty();
+                    logEvents[logEvents.length - 1][0].should.have.property('level', helper.log().ERROR);
+                    logEvents[logEvents.length - 1][0].should.have.property('msg', 'No session configuration provided');
+                    done();
+                });
+            });
+        });
+    });
+
+    describe('zenoh-liveliness-get node', function() {
+        it('should be loaded with correct configuration', function(done) {
+            const flow = [
+                { id: 's1', type: 'zenoh-session', locator: 'ws://localhost:10000' },
+                {
+                    id: 'n1',
+                    type: 'zenoh-liveliness-get',
+                    session: 's1',
+                    keyExpr: 'test/liveliness/**',
+                    timeout: 5000,
+                    name: 'test-liveliness-get'
+                }
+            ];
+            helper.load([sessionNode, livelinessGetNode], flow, function() {
+                const n1 = helper.getNode('n1');
+                should(n1).have.property('name', 'test-liveliness-get');
+                should(n1).have.property('keyExpr', 'test/liveliness/**');
+                should(n1).have.property('timeout', 5000);
+                done();
+            });
+        });
+
+        it('should use default timeout if not specified', function(done) {
+            const flow = [
+                { id: 's1', type: 'zenoh-session', locator: 'ws://localhost:10000' },
+                { id: 'n1', type: 'zenoh-liveliness-get', session: 's1', keyExpr: 'test/liveliness/**' }
+            ];
+            helper.load([sessionNode, livelinessGetNode], flow, function() {
+                const n1 = helper.getNode('n1');
+                should(n1).have.property('timeout', 10000);
+                done();
+            });
+        });
+
+        it('should error without session configuration', function(done) {
+            const flow = [
+                { id: 'n1', type: 'zenoh-liveliness-get', keyExpr: 'test/liveliness/**' }
+            ];
+            helper.load(livelinessGetNode, flow, function() {
+                // Give the node time to log the error
+                setImmediate(function() {
+                    const logEvents = helper.log().args.filter(function(evt) {
+                        return evt[0].type === 'zenoh-liveliness-get';
                     });
                     logEvents.should.not.be.empty();
                     logEvents[logEvents.length - 1][0].should.have.property('level', helper.log().ERROR);
