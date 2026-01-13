@@ -65,11 +65,8 @@ module.exports = function(RED) {
 
                         // Check if result is a Sample (not an error)
                         if (result.constructor.name === 'Sample') {
-                            const tokenKeyExpr = result.keyexpr().toString();
-
                             const tokenInfo = {
-                                keyExpr: tokenKeyExpr,
-                                topic: tokenKeyExpr
+                                keyExpr: result.keyexpr().toString()
                             };
 
                             // Include timestamp if available
