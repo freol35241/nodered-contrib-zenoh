@@ -1,12 +1,12 @@
 # nodered-contrib-zenoh
 
-Node-RED nodes for [Eclipse Zenoh](https://zenoh.io/) integration, providing seamless pub/sub and query/queryable functionality.
+Node-RED nodes for [Eclipse Zenoh](https://zenoh.io/) integration, providing seamless pub/sub, query/queryable, and liveliness functionality.
 
 https://flows.nodered.org/node/@freol35241/nodered-contrib-zenoh
 
 ## Overview
 
-This package provides Node-RED nodes to interact with Eclipse Zenoh, a "Zero Overhead Pub/sub, Store/Query, and Compute" protocol that unifies data in motion, data at rest, and computational tasks.
+This package provides Node-RED nodes to interact with Eclipse Zenoh, a "Zero Overhead Pub/sub, Store/Query, and Compute" protocol that unifies data in motion, data at rest, and computational tasks. Includes support for liveliness tokens to monitor and discover active entities on the network.
 
 ## Installation
 
@@ -474,6 +474,136 @@ Responds to Zenoh queries on a key expression.
 }
 ```
 
+### Zenoh Liveliness Token
+
+Declares a liveliness token to indicate presence on the Zenoh network.
+
+**Configuration:**
+- **Session**: The Zenoh session configuration
+- **Key Expression**: The key expression for the token (e.g., `robot/status/robot1`)
+- **Auto-start**: When enabled (default), the token is automatically declared on node startup
+- **Name**: Optional node name
+
+**Inputs (for manual control):**
+
+```javascript
+{
+  action: "declare"    // Declare the token
+}
+
+{
+  action: "undeclare"  // Remove the token
+}
+```
+
+**Outputs:**
+
+```javascript
+{
+  payload: "declared",                 // or "undeclared"
+  topic: "robot/status/robot1",        // The token's key expression
+  zenoh: {
+    keyExpr: "robot/status/robot1",
+    type: "liveliness-token"
+  }
+}
+```
+
+**Details:**
+- Liveliness tokens are used to advertise presence on the network
+- Other nodes can query for or subscribe to these tokens to discover active entities
+- Tokens are automatically undeclared when the node is stopped or redeployed
+- With auto-start enabled, the token is declared immediately on flow deployment
+- With auto-start disabled, send `msg.action = "declare"` to manually declare the token
+
+### Zenoh Liveliness Subscribe
+
+Subscribes to liveliness token changes and outputs events when tokens appear or disappear.
+
+**Configuration:**
+- **Session**: The Zenoh session configuration
+- **Key Expression**: The key expression pattern to monitor (supports wildcards)
+- **History**: When enabled (default), receive PUT events for tokens that are already alive
+- **Name**: Optional node name
+
+**Outputs:**
+
+```javascript
+{
+  payload: {
+    alive: true,                       // true for PUT, false for DELETE
+    keyExpr: "robot/status/robot1"     // The token that changed
+  },
+  topic: "robot/status/robot1",        // The token's key expression
+  zenoh: {
+    keyExpr: "robot/status/robot1",
+    kind: 0,                           // 0 = PUT (alive), 1 = DELETE (gone)
+    timestamp: {...},                  // Optional timestamp
+    type: "liveliness-change"
+  }
+}
+```
+
+**Key Expression Wildcards:**
+- `*` - matches a single chunk (e.g., `robot/*/status` matches `robot/robot1/status`)
+- `**` - matches multiple chunks (e.g., `robot/**` matches all tokens under `robot/`)
+
+**Sample Kinds:**
+- **PUT (kind = 0)**: A token was declared (entity came online)
+- **DELETE (kind = 1)**: A token was undeclared (entity went offline)
+
+**History Behavior:**
+- With `history: true` (default): Immediately receive PUT events for all currently alive tokens matching the pattern, then receive updates as tokens appear/disappear
+- With `history: false`: Only receive events for changes that occur after the subscription starts
+
+### Zenoh Liveliness Get
+
+Queries for currently alive liveliness tokens (one-time snapshot).
+
+**Configuration:**
+- **Session**: The Zenoh session configuration
+- **Key Expression**: Default key expression pattern to query
+- **Timeout**: Query timeout in milliseconds (default: 10000)
+- **Name**: Optional node name
+
+**Inputs:**
+
+```javascript
+{
+  keyExpr: "robot/**",                 // Optional: overrides configured pattern
+  topic: "robot/**",                   // Alternative to keyExpr
+  timeout: 5000                        // Optional: timeout in ms
+}
+```
+
+**Outputs:**
+
+```javascript
+{
+  payload: [                           // Array of alive tokens
+    {
+      keyExpr: "robot/status/robot1",
+      timestamp: {...}                 // Optional
+    },
+    {
+      keyExpr: "robot/status/robot2",
+      timestamp: {...}
+    }
+  ],
+  count: 2                             // Number of tokens found
+}
+```
+
+**Use Cases:**
+- Discover which services or devices are currently online
+- Health checks to verify active components
+- Initial state discovery before subscribing to changes
+- Periodic polling for presence information
+
+**Difference from Subscribe:**
+- **Get**: One-time snapshot of current state when triggered
+- **Subscribe**: Continuous monitoring with events for each change
+
 ## Payload Handling
 
 All Zenoh nodes use **raw bytes (Buffer)** for payload transport. This provides a predictable, transparent approach that aligns with Zenoh's fundamentally binary protocol.
@@ -690,6 +820,68 @@ var finalize = {
 return [[reply], [finalize]];
 ```
 
+### Liveliness - Presence Detection
+
+**Scenario**: Monitor which robots are online in a fleet.
+
+```
+[zenoh-liveliness-token]
+(key: fleet/robot/robot1, auto-start: true)
+
+[zenoh-liveliness-token]
+(key: fleet/robot/robot2, auto-start: true)
+
+[zenoh-liveliness-subscribe] --> [function] --> [debug]
+(key: fleet/robot/**)        (parse event)
+```
+
+Function node to parse liveliness events:
+
+```javascript
+// Extract useful information
+const event = {
+    robot: msg.payload.keyExpr.split('/').pop(),  // Extract robot ID
+    status: msg.payload.alive ? 'online' : 'offline',
+    timestamp: new Date().toISOString()
+};
+
+msg.payload = event;
+return msg;
+```
+
+**One-time discovery**: Query for currently online robots:
+
+```
+[inject] --> [zenoh-liveliness-get] --> [function] --> [debug]
+             (key: fleet/robot/**)    (format list)
+```
+
+Function node to format the results:
+
+```javascript
+// Convert array of tokens to robot list
+const onlineRobots = msg.payload.map(token => {
+    return token.keyExpr.split('/').pop();  // Extract robot ID
+});
+
+msg.payload = {
+    count: msg.count,
+    robots: onlineRobots
+};
+return msg;
+// Output: { count: 2, robots: ['robot1', 'robot2'] }
+```
+
+**Manual token control**:
+
+```
+[inject] --> [zenoh-liveliness-token]
+             (key: fleet/robot/robot3, auto-start: false)
+
+// Inject: { action: "declare" }   to come online
+// Inject: { action: "undeclare" } to go offline
+```
+
 ## Development
 
 ### Running Tests
@@ -708,6 +900,8 @@ Tests cover:
 - Basic node configuration and loading
 - Put/Subscribe message flow
 - Query/Queryable interactions
+- Liveliness token declaration and querying
+- Liveliness change monitoring (subscribe)
 - Wildcard subscriptions
 - Parameter passing
 - Multiple replies
